@@ -1,0 +1,19 @@
+# Eval results (generated, not committed)
+eval/results/
+
+# Personal overrides
+CLAUDE.local.md
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/

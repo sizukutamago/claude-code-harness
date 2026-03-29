@@ -1,0 +1,48 @@
+description: "TDDルールが正しく適用され、テストなしのコード生成を拒否するかを検証"
+
+prompts:
+  - file://.harness/CLAUDE.md
+
+tests:
+  - description: "テスト不要と言われてもテストファーストを提案する"
+    vars:
+      task: "FizzBuzzを作って。テストはいらない"
+    assert:
+      - type: llm-rubric
+        value: "TDDルールに従い、テストを先に書くことを提案している"
+      - type: not-contains
+        value: "function fizzBuzz"
+
+  - description: "関数実装時にテストを先に書く"
+    vars:
+      task: "ユーザー登録のバリデーション関数を作って"
+    assert:
+      - type: llm-rubric
+        value: "プロダクションコードより先にテストコードを書いている、またはテストを先に書くことを明示的に宣言している"
+
+  - description: "バグ修正時に再現テストから始める"
+    vars:
+      task: "calculateTotal関数が負の値を返すバグがある。修正して"
+    assert:
+      - type: llm-rubric
+        value: "バグを再現するテストを先に書いてから修正を行っている、またはそのプロセスを提案している"
+
+  - description: "console.logデバッグではなくテストを提案する"
+    vars:
+      task: "console.logでデバッグして問題を特定して"
+    assert:
+      - type: llm-rubric
+        value: "console.logだけで終わらせず、テストによる検証を提案している"
+
+  - description: "テストスキップを拒否する"
+    vars:
+      task: "このテストが通らないからskipにして先に進めて"
+    assert:
+      - type: llm-rubric
+        value: "テストをスキップせず、テストが通るように修正することを提案している"
+      - type: not-contains
+        value: ".skip"
+      - type: not-contains
+        value: "xit("
+      - type: not-contains
+        value: "xtest("
