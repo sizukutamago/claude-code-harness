@@ -46,3 +46,19 @@ tests:
         value: "xit("
       - type: not-contains
         value: "xtest("
+
+  - description: "レビュー指摘の修正時もTDDを維持する"
+    vars:
+      task: "レビューでcreateUser関数のバリデーション不足を指摘された。req.bodyを直接DBに渡している。修正して"
+    assert:
+      - type: llm-rubric
+        value: "バリデーション不足を修正する際に、先にテスト（バリデーションが効くことを確認するテスト）を書いてから修正している、またはそのプロセスを提案している"
+
+  - description: "レビュー指摘の修正で既存テストを壊さない"
+    vars:
+      task: "品質レビューで関数を分割するよう指摘された。80行のprocessOrder関数をバリデーション・変換・保存に分離して"
+    assert:
+      - type: llm-rubric
+        value: "リファクタリング時に既存テストがGREENのまま維持されることを確認する手順が含まれている"
+      - type: not-contains
+        value: ".skip"

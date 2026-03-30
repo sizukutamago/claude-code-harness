@@ -1,7 +1,7 @@
 # 引き継ぎドキュメント — claude-code-harness
 
-**Date:** 2026-03-30
-**前回作業リポジトリ:** `ai-workflow`（調査・設計のみ。実装はこのリポジトリで行う）
+**Date:** 2026-03-31
+**前回作業リポジトリ:** このリポジトリ（claude-code-harness）
 
 ---
 
@@ -29,66 +29,55 @@ Problem Shaping で特定した根本課題:
 
 ---
 
-## 2. 前回セッションの成果（2026-03-30）
+## 2. 直近セッションの成果
 
-### 完了: TDD 縦割り一本通し
+### 2.1 TDD 縦割り一本通し（2026-03-30 セッション1）
 
-フォーマット・粒度・実用性を検証するため、TDD をテーマにルール→スキル→エージェント→eval を縦に一本通した。全てユーザーレビュー→承認済み。
+フォーマット・粒度・実用性を検証するため、TDD をテーマにルール→スキル→エージェント→eval を縦に一本通した。
+
+| ファイル | 内容 |
+|---------|------|
+| `core/rules/testing.md` | テストルール（paths frontmatter付き、常時適用） |
+| `core/rules/coding-style.md` | コーディングルール（lint優先明記、AI判断のみに絞り済み） |
+| `core/skills/tdd/SKILL.md` | TDDプロセス + 委譲指示（skill-creator仕様準拠） |
+| `eval/cases/tdd-enforcement.yaml` | TDD遵守テスト7件（promptfoo互換） |
+| `docs/notes/lint-rules-memo.md` | lint設定メモ（coding-styleから除外した項目を記録） |
+
+### 2.2 code-review 縦割り + アーキテクチャ変更（2026-03-30〜31 セッション2）
+
+code-review を縦割りで通す過程で、エージェント配置のアーキテクチャを大幅に変更した。
 
 #### 作成したファイル
 
-| ファイル | 行数 | 内容 |
-|---------|------|------|
-| `core/rules/testing.md` | 40行 | テストルール（paths frontmatter付き、常時適用） |
-| `core/rules/coding-style.md` | 26行 | コーディングルール（lint優先明記、AI判断のみに絞り済み） |
-| `core/skills/tdd/SKILL.md` | 229行 | TDDプロセス + 委譲指示（skill-creator仕様準拠） |
-| `core/agents/implementer.md` | 49行 | TDD実装エージェント（model: sonnet） |
-| `core/agents/test-runner.md` | 47行 | テスト実行・報告エージェント（model: sonnet、横断利用） |
-| `eval/cases/tdd-enforcement.yaml` | 49行 | TDD遵守テスト5件（promptfoo互換） |
-| `docs/notes/lint-rules-memo.md` | - | lint設定メモ（coding-styleから除外した項目を記録） |
+| ファイル | 内容 |
+|---------|------|
+| `core/skills/code-review/SKILL.md` | 3観点並列レビュー + 依存解決修正パターン |
+| `.claude/agents/spec-reviewer.md` | 仕様準拠レビュアー（Opus, read-only） |
+| `.claude/agents/quality-reviewer.md` | コード品質レビュアー（Opus, read-only） |
+| `.claude/agents/security-reviewer.md` | セキュリティレビュアー（Opus, read-only） |
+| `.claude/agents/_shared/review-report-format.md` | レビュー共通報告フォーマット |
+| `eval/cases/code-review-enforcement.yaml` | レビュー遵守テスト7件（promptfoo互換） |
 
-### 確立したフォーマット（承認済み）
+#### 移動したファイル
 
-#### ルール（rules）
-- `paths:` frontmatter でファイルパターン指定（導入時にカスタマイズ）
-- frontmatter 以外のフィールドなし
-- セクション: Iron Law → 必須ルール → 禁止事項 → その他
-- 命令数を絞る（4ルール合計で50未満）
-- LLMが誤解しない表現にする（具体例付き）
-- プロジェクトの lint 設定がある場合はそれが優先される旨を明記
+| 移動元 | 移動先 |
+|--------|--------|
+| `core/agents/implementer.md` | `.claude/agents/implementer.md` |
+| `core/agents/test-runner.md` | `.claude/agents/test-runner.md` |
 
-#### スキル（SKILL.md）
-- frontmatter: `name`(kebab-case, max64字) + `description`("機能実装、バグ修正..."形式、max1024字)
-- skill-creator 仕様準拠
-- Progressive Disclosure: 本体500行以下。重いリファレンスは別ファイルに分離
-- セクション: 概要 → Iron Law → いつ使うか → プロセス(DOT図) → 良いテスト(テーブル) → よくある合理化(テーブル) → 危険信号(チェックリスト) → 例 → 検証チェックリスト → 行き詰まった場合 → 委譲指示 → 関連ファイル
-- **委譲指示セクション必須**: 「あなた」+「ディスパッチ」でエージェントへの委譲を明記
-- 日本語で記述
+#### アーキテクチャ変更の経緯
 
-#### エージェント
-- frontmatter: `name`, `description`, `tools: [...]`, `model: sonnet|opus|haiku`
-- セクション: 役割説明 → 動作指針 → チェックリスト → 完了報告（4ステータス）
-- 完了報告: DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED
-- 「コーディネーター」は使わない。主語は省略 or 「あなた」
+1. **エージェント定義の配置問題**: `core/agents/` に置いたエージェントは Claude Code に自動発見されないことが判明
+2. **`.claude/agents/` に移動**: Claude Code 公式の自動発見ディレクトリ。名前で dispatch 可能、`tools` フロントマターで write 制限が効く
+3. **プロンプトテンプレート方式を検討→廃止**: Superpowers 方式（スキル内に `-prompt.md`）を試みたが、`.claude/agents/` の自動発見 + tools 制限の方が優れていた
+4. **共通リファレンス**: エージェント定義にインクルード機構がないため、`_shared/` に共通定義を置き、各エージェントが実行時に Read する方式を採用
 
-#### eval
-- promptfoo 互換 YAML
-- `not-contains`(決定的) + `llm-rubric`(品質判定) の組み合わせ
-- 実行・改善ループの仕組みは未実装（次フェーズ）
+#### code-review の設計ポイント
 
-### 発見した設計変更（重要）
-
-#### commands/ 廃止 → スキルに一本化
-- Claude Code の公式仕様: コマンドとスキルは同じ名前空間。同名ならスキルが優先
-- `.claude/commands/` は後方互換のためだけに残っている
-- **新規作成はスキルのみ。commands/ ディレクトリは使わない**
-- 設計書の commands 12個は全てスキルの frontmatter で制御する
-- 公式ドキュメント: https://code.claude.com/docs/en/skills
-
-#### lint で矯正できるルールを分離
-- coding-style.md からマジックナンバー禁止、ネスト深度、関数行数制限等を除外
-- `docs/notes/lint-rules-memo.md` に記録済み
-- 導入時に hooks.json の PostToolUse で lint 自動実行する想定
+- **並列レビュー**: 3レビュアー（spec/quality/security）を同時 dispatch。read-only なので安全
+- **依存解決修正**: MUST 指摘の修正前に affected files で依存分析 → 共有部分を先に直列修正 → 独立部分を並列修正
+- **再レビュー最適化**: MUST 指摘があった観点のみ再実行（全観点やり直さない）
+- **指摘分類**: MUST / SHOULD / CONSIDER の3段階。file + line 必須
 
 ---
 
@@ -104,7 +93,7 @@ Problem Shaping で特定した根本課題:
 [5]  テスト          → tdd スキル(継続) + test-runner
 [6]  リファクタ      → simplify スキル + simplifier（実装者と別）
 [7]  品質テスト追加   → test-quality スキル + test-quality-engineer
-[8]  レビュー(3段階) → code-review スキル + spec/quality/security-reviewer
+[8]  レビュー(並列)  → code-review スキル + spec/quality/security-reviewer（並列）
 [9]  完了検証        → verification スキル + verifier
 [10] 整理            → cleanup スキル + cleanup-agent + doc-maintainer
 [11] コミット・PR    → 直接実行（rules/git-workflow適用）
@@ -122,33 +111,35 @@ Problem Shaping で特定した根本課題:
 | 5 | simplify | [6] | テストがGREENのまま簡素化せよ | SOFT(小) / HARD(中大) | 未作成 |
 | 6 | test-quality | [7] | 品質テストなしにレビューに進むな | SOFT(小) / HARD(中大) | 未作成 |
 | 7 | debugging | (随時) | 根本原因を特定せずに修正するな | HARD(常時) | 未作成 |
-| 8 | code-review | [8] | 3段階レビューを省略するな | HARD(常時) | 未作成 |
+| 8 | code-review | [8] | 3観点レビューを省略するな | HARD(常時) | **完了** |
 | 9 | verification | [9] | 検証証拠なしに完了を宣言するな | HARD(常時) | 未作成 |
 | 10 | cleanup | [10] | 不要ファイルを残したままコミットするな | SOFT(小) / HARD(中大) | 未作成 |
 | 11 | eval | [12] | ハーネス変更を測定なしにデプロイするな | SOFT(常時) | 未作成 |
 
 ### 3.3 サブエージェント（18個）
 
-| # | エージェント | model | 対応スキル | 状態 |
-|---|------------|-------|-----------|------|
-| 1 | requirements-analyst | Opus | requirements | 未作成 |
-| 2 | brainstormer | Opus | brainstorming | 未作成 |
-| 3 | spec-doc-reviewer | Opus | brainstorming | 未作成 |
-| 4 | planner | Opus | planning | 未作成 |
-| 5 | plan-reviewer | Opus | planning | 未作成 |
-| 6 | implementer | Sonnet | tdd | **完了** |
-| 7 | debugger | Sonnet | debugging | 未作成 |
-| 8 | simplifier | Sonnet | simplify | 未作成 |
-| 9 | test-quality-engineer | Sonnet | test-quality | 未作成 |
-| 10 | spec-reviewer | Opus | code-review | 未作成 |
-| 11 | quality-reviewer | Opus | code-review | 未作成 |
-| 12 | security-reviewer | Opus | code-review | 未作成 |
-| 13 | verifier | Sonnet | verification | 未作成 |
-| 14 | cleanup-agent | Sonnet | cleanup | 未作成 |
-| 15 | explorer | Haiku | (横断) | 未作成 |
-| 16 | test-runner | Sonnet | (横断) | **完了** |
-| 17 | doc-maintainer | Sonnet | (横断) | 未作成 |
-| 18 | eval-runner | Sonnet | eval | 未作成 |
+配置先: `.claude/agents/`（Claude Code が自動発見）
+
+| # | エージェント | model | tools | 対応スキル | 状態 |
+|---|------------|-------|-------|-----------|------|
+| 1 | requirements-analyst | Opus | Read, Grep, Glob | requirements | 未作成 |
+| 2 | brainstormer | Opus | Read, Grep, Glob | brainstorming | 未作成 |
+| 3 | spec-doc-reviewer | Opus | Read, Grep, Glob | brainstorming | 未作成 |
+| 4 | planner | Opus | Read, Grep, Glob | planning | 未作成 |
+| 5 | plan-reviewer | Opus | Read, Grep, Glob | planning | 未作成 |
+| 6 | implementer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | tdd | **完了** |
+| 7 | debugger | Sonnet | Read, Grep, Glob, Write, Edit, Bash | debugging | 未作成 |
+| 8 | simplifier | Sonnet | Read, Grep, Glob, Write, Edit, Bash | simplify | 未作成 |
+| 9 | test-quality-engineer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | test-quality | 未作成 |
+| 10 | spec-reviewer | Opus | Read, Grep, Glob | code-review | **完了** |
+| 11 | quality-reviewer | Opus | Read, Grep, Glob | code-review | **完了** |
+| 12 | security-reviewer | Opus | Read, Grep, Glob | code-review | **完了** |
+| 13 | verifier | Sonnet | Read, Grep, Glob, Bash | verification | 未作成 |
+| 14 | cleanup-agent | Sonnet | Read, Grep, Glob, Write, Edit, Bash | cleanup | 未作成 |
+| 15 | explorer | Haiku | Read, Grep, Glob | (横断) | 未作成 |
+| 16 | test-runner | Sonnet | Read, Grep, Glob, Bash | (横断) | **完了** |
+| 17 | doc-maintainer | Sonnet | Read, Grep, Glob, Write, Edit | (横断) | 未作成 |
+| 18 | eval-runner | Sonnet | Read, Grep, Glob, Bash | eval | 未作成 |
 
 ### 3.4 ルール（4個）
 
@@ -159,11 +150,38 @@ Problem Shaping で特定した根本課題:
 | security.md | 未作成 |
 | git-workflow.md | 未作成 |
 
-### 3.5 その他の確定事項
+### 3.5 確定したフォーマット
+
+#### ルール（rules）
+- `paths:` frontmatter でファイルパターン指定（導入時にカスタマイズ）
+- セクション: Iron Law → 必須ルール → 禁止事項 → その他
+- 命令数を絞る（4ルール合計で50未満）
+- プロジェクトの lint 設定がある場合はそれが優先される旨を明記
+
+#### スキル（SKILL.md）
+- frontmatter: `name`(kebab-case, max64字) + `description`(max1024字)
+- skill-creator 仕様準拠、日本語で記述
+- Progressive Disclosure: 本体500行以下
+- セクション: 概要 → Iron Law → いつ使うか → プロセス(DOT図) → テーブル類 → 危険信号 → 例 → 検証チェックリスト → 行き詰まった場合 → 委譲指示 → 関連ファイル
+- **委譲指示**: 「あなた」+「ディスパッチ」でエージェントへの委譲を明記。コンテキストはプロンプトに全文埋め込む
+
+#### エージェント（`.claude/agents/*.md`）
+- frontmatter: `name`, `description`, `tools`(ホワイトリスト), `model`
+- セクション: 役割説明 → 動作指針 → レビュー観点（or チェックリスト）→ 報告フォーマット → 注意事項
+- レビュアーは `tools: Read, Grep, Glob`（read-only）。実装者は Write, Edit, Bash も含む
+- 共通定義は `_shared/` を Read で参照
+- 「コーディネーター」は使わない。主語は「あなた」
+
+#### eval
+- promptfoo 互換 YAML
+- `not-contains`(決定的) + `llm-rubric`(品質判定) の組み合わせ
+- 実行・改善ループの仕組みは未実装（次フェーズ）
+
+### 3.6 その他の確定事項
 
 - **既存プラグインとの関係**: blueprint-plugin, dev-tools-plugin とは完全独立
 - **CLAUDE.md**: 人間が書く（LLM生成は逆効果）。200行以下。Progressive Disclosure
-- **レビュー**: 3段階（spec → quality → security、全てOpus）
+- **レビュー**: 3観点並列（spec → quality → security、全てOpus）
 - **エスカレーション**: 4ステータス + BLOCKED判断ツリー
 - **レビューループ上限**: 最大3回 + モデルエスカレート1回 = 4回で打ち切り
 - **コスト管理**: モデルルーティング + トークンバジェット180-280k + Stopフック追跡
@@ -175,29 +193,38 @@ Problem Shaping で特定した根本課題:
 
 ```
 claude-code-harness/
-├── CLAUDE.md                              # プロジェクト概要・境界線
+├── CLAUDE.md                              # プロジェクト概要・境界線・Agent Design Principles
 ├── HANDOVER.md                            # この引き継ぎドキュメント
 ├── .gitignore
+│
+├── .claude/
+│   └── agents/                            # ★エージェント定義（Claude Code 自動発見）
+│       ├── _shared/
+│       │   └── review-report-format.md    # ★完了: レビュー共通報告フォーマット
+│       ├── implementer.md                 # ★完了: TDD実装エージェント（Sonnet）
+│       ├── test-runner.md                 # ★完了: テスト実行エージェント（Sonnet, 横断）
+│       ├── spec-reviewer.md              # ★完了: 仕様準拠レビュアー（Opus, read-only）
+│       ├── quality-reviewer.md           # ★完了: コード品質レビュアー（Opus, read-only）
+│       └── security-reviewer.md          # ★完了: セキュリティレビュアー（Opus, read-only）
 │
 ├── core/
 │   ├── skills/
 │   │   ├── tdd/
 │   │   │   └── SKILL.md                   # ★完了: TDDプロセス + 委譲指示
+│   │   ├── code-review/
+│   │   │   └── SKILL.md                   # ★完了: 3観点並列レビュー + 依存解決修正
 │   │   ├── requirements/                  # 未作成
 │   │   ├── brainstorming/                 # 未作成
 │   │   ├── planning/                      # 未作成
 │   │   ├── simplify/                      # 未作成
 │   │   ├── test-quality/                  # 未作成
 │   │   ├── debugging/                     # 未作成
-│   │   ├── code-review/                   # 未作成
 │   │   ├── verification/                  # 未作成
 │   │   ├── cleanup/                       # 未作成
 │   │   ├── eval/                          # 未作成
 │   │   └── README.md
 │   ├── agents/
-│   │   ├── implementer.md                 # ★完了: TDD実装エージェント
-│   │   ├── test-runner.md                 # ★完了: テスト実行エージェント（横断）
-│   │   └── README.md
+│   │   └── README.md                      # 設計一覧のみ（実体は .claude/agents/）
 │   ├── rules/
 │   │   ├── testing.md                     # ★完了: テストルール
 │   │   ├── coding-style.md                # ★完了: コーディングルール
@@ -208,13 +235,14 @@ claude-code-harness/
 │
 ├── eval/
 │   ├── cases/
-│   │   └── tdd-enforcement.yaml           # ★完了: TDD遵守テスト5件
+│   │   ├── tdd-enforcement.yaml           # ★完了: TDD遵守テスト7件
+│   │   └── code-review-enforcement.yaml   # ★完了: レビュー遵守テスト7件
 │   ├── results/                           # .gitignore対象
 │   └── README.md
 │
 ├── docs/
 │   ├── design/
-│   │   └── architecture-design.md         # 設計書（commands廃止の反映が必要）
+│   │   └── architecture-design.md         # 設計書（要更新: エージェント配置変更の反映）
 │   ├── research/
 │   │   ├── reference-repos-overview.md
 │   │   ├── reference-repos-digest.md
@@ -254,33 +282,36 @@ claude-code-harness/
 
 ## 7. 次にやるべきこと
 
-### 推奨: code-review 縦割り（次の検証）
+### 推奨: 実装寄りスキル群の横展開
 
-TDDの次に code-review を縦割りで通すことを推奨。理由:
-- 3段階レビュー（spec→quality→security）でエージェント間連携パターンを検証
-- 全エージェントが Opus モデル（implementer の Sonnet とは違うパターン）
-- 実運用で頻繁に使うスキル
+TDD と code-review の2つの縦割りでフォーマットとアーキテクチャが固まった。次は横展開。
 
-作るもの:
-1. `core/skills/code-review/SKILL.md` — 3段階レビュープロセス + 委譲指示
-2. `core/agents/spec-reviewer.md` — 仕様準拠レビュー（Opus）
-3. `core/agents/quality-reviewer.md` — コード品質レビュー（Opus）
-4. `core/agents/security-reviewer.md` — セキュリティレビュー（Opus）
-5. `eval/cases/code-review-enforcement.yaml` — レビュー遵守テスト
+#### 優先度高: 実装寄りスキル（TDD と連携が強い）
 
-### 全体の残りタスク
+| # | スキル | 作るもの | 理由 |
+|---|--------|---------|------|
+| 1 | simplify | SKILL.md + simplifier agent | TDD→実装→リファクタの流れを完成 |
+| 2 | debugging | SKILL.md + debugger agent | 随時使用、HARD GATE |
+| 3 | test-quality | SKILL.md + test-quality-engineer agent | レビュー前の品質テスト |
 
-| # | タスク | 規模 | 備考 |
-|---|--------|------|------|
-| 1 | 残りスキル10個の SKILL.md | 大 | フォーマット確定済み、展開可能 |
-| 2 | 残りエージェント16個 | 大 | フォーマット確定済み、展開可能 |
-| 3 | 残りルール2個 (security, git-workflow) | 小 | |
-| 4 | hooks.json | 中 | PreToolUse, PostToolUse, Stop, SessionStart |
-| 5 | ドキュメントテンプレート7種 | 中 | adr, decision, spec, plan, requirement, test-plan, postmortem |
-| 6 | eval テストケース追加 (15-45件) | 中 | 実行・改善ループの仕組みも必要 |
-| 7 | CLAUDE.md テンプレート | 小 | 導入先プロジェクト用 |
-| 8 | 設計書の更新 | 小 | commands廃止、主語統一等の反映 |
-| 9 | commands/ ディレクトリの整理 | 小 | README.md 更新 or 削除 |
+#### 優先度中: 上流スキル
+
+| # | スキル | 作るもの | 理由 |
+|---|--------|---------|------|
+| 4 | requirements | SKILL.md + requirements-analyst agent | 上流だが後でも影響小 |
+| 5 | brainstorming | SKILL.md + brainstormer + spec-doc-reviewer agents | 設計フェーズ |
+| 6 | planning | SKILL.md + planner + plan-reviewer agents | 計画フェーズ |
+
+#### 優先度低: 仕上げ
+
+| # | タスク | 備考 |
+|---|--------|------|
+| 7 | verification, cleanup, eval スキル | 検証・整理・振り返りフェーズ |
+| 8 | 残りルール2個 (security, git-workflow) | 小タスク |
+| 9 | hooks.json | PreToolUse, PostToolUse, Stop, SessionStart |
+| 10 | TDD スキルの委譲指示を `.claude/agents/` 配置に合わせて更新 | tdd/SKILL.md がまだ `core/agents/` を参照している |
+| 11 | 設計書の更新 | エージェント配置変更、並列レビュー等の反映 |
+| 12 | commands/ ディレクトリの整理 | README.md 更新 or 削除 |
 
 ### 後で設計するもの
 
@@ -289,6 +320,7 @@ TDDの次に code-review を縦割りで通すことを推奨。理由:
 - AIによるハーネス自己改善ループ
 - CI/CD 統合（PRごとのeval自動実行）
 - チーム全体のメトリクスダッシュボード
+- Claude Code フロントマターの追加活用（`maxTurns`, `permissionMode`, `effort`, `isolation` 等）
 
 ---
 
@@ -298,7 +330,7 @@ TDDの次に code-review を縦割りで通すことを推奨。理由:
 |------|------|
 | CLAUDE.md を人間が書く | Addy Osmani研究: LLM生成は-3%、人間記述は+4% |
 | 命令数を最小限に | Arize研究: ~50命令で遵守品質が均一に低下 |
-| コーディネーターはコードを書かない | Superpowers: コンテキストを調整作業のために保持 |
+| メインセッションはコードを書かない | Superpowers: コンテキストを調整作業のために保持 |
 | タスク毎に新しいサブエージェント | Superpowers: フレッシュなコンテキスト = セッション肥大なし |
 | レビュアーは実装者と別 | ECC Ralphinho: 実装者バイアスの排除 |
 | コンテキストはキュレーションして全文渡す | Superpowers: サブエージェントにファイルを読ませるな |
@@ -310,3 +342,9 @@ TDDの次に code-review を縦割りで通すことを推奨。理由:
 | スキル内の主語は「あなた」 | 「コーディネーター」はスキル単体で読んだ時に伝わらない |
 | 委譲動詞は「ディスパッチ」 | Superpowers 準拠 |
 | HARD/SOFT GATEをタスクサイズで切り替え | 小タスクに全HARD GATEだと摩擦大→導入拒否リスク |
+| エージェント定義は `.claude/agents/` に配置 | Claude Code 公式: 自動発見され、名前で dispatch 可能。tools/model 制限がフロントマターで効く |
+| `core/agents/` は設計一覧のみ | 実体は `.claude/agents/`。core/ には README（一覧）だけ残す |
+| レビュアーの報告フォーマットを `_shared/` で共通化 | エージェント定義にインクルード機構がないため、共通リファレンスをエージェントが実行時に Read する |
+| レビュー3観点は並列実行 | 仕様・品質・セキュリティは独立した観点。read-only なので並列安全 |
+| 修正は依存解決パターン | 共有レイヤー（型、interface）を先に直列修正 → 独立部分を並列修正 |
+| 「コーディネーター」は使わない | エージェントは起動元を知らない。主語は「あなた」、または省略 |

@@ -1,7 +1,7 @@
 ---
 name: test-runner
 description: テストを実行し、冗長な出力を要約して返す
-tools: [Read, Grep, Glob, Bash]
+tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
@@ -16,6 +16,8 @@ model: sonnet
 2. **テストの実行**: 特定したコマンドでテストを実行する
 3. **出力の解析**: テスト出力が長い場合でも全て読む。途中で切り捨てない
 4. **結果の構造化**: 以下のフォーマットで報告する
+
+プロンプトのコンテキストで不足がある場合のみ tools で補え。
 
 ## 報告フォーマット
 
