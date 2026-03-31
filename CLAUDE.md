@@ -5,15 +5,14 @@
 ## Project Overview
 
 チームのAI駆動開発における品質・スピードを底上げするための、ワークフロー・スキル・エージェント・eval の統合基盤。
-プロジェクトテンプレートとして各プロジェクトの `.harness/` に展開して使う。
+このリポジトリはテンプレート（ソース）であり、各プロジェクトへの導入時に所定のディレクトリへ展開して使う。
 
 ## Architecture
 
 ```
-.claude/
-  agents/       — エージェント定義（Claude Code が自動発見）
-    _shared/    — エージェント間の共通リファレンス
 core/
+  agents/       — エージェント定義のソース
+    _shared/    — エージェント間の共通リファレンス
   skills/       — 11個のコアスキル（ワークフロー方法論）
   rules/        — 常時有効ルール（4個）
   hooks/        — イベント駆動の自動化
@@ -22,9 +21,20 @@ docs/           — 設計書・調査資料・テンプレート
 modules/        — 拡張モジュール（言語固有パターン等、後で設計）
 ```
 
+## テンプレートと導入先の関係
+
+このリポジトリはハーネスのソース（テンプレート）。導入先プロジェクトでは以下のように展開する:
+
+| ソース（このリポジトリ） | 導入先プロジェクト | 備考 |
+|---|---|---|
+| `core/agents/` | `.claude/agents/` | Claude Code が自動発見、名前で dispatch 可能 |
+| `core/skills/` | `.claude/skills/` | Claude Code がスキルとして認識 |
+| `core/rules/` | `.claude/rules/` | Claude Code が常時適用 |
+| `core/hooks/` | `.claude/hooks/` | Claude Code がイベント駆動で実行 |
+| `eval/` | プロジェクト内の任意の場所 | promptfoo で実行 |
+
 ## Agent Design Principles
 
-- **配置**: `.claude/agents/` に置く（Claude Code が自動発見し、名前で dispatch 可能）
 - **tools 制限**: フロントマターの `tools` でホワイトリスト指定（レビュアーは read-only）
 - **コンテキスト**: スキルの委譲指示に従い、dispatch 時のプロンプトに全文埋め込む。エージェントにファイルを読ませるな
 - **共通定義**: `_shared/` に共通リファレンスを置き、各エージェントが実行時に読む

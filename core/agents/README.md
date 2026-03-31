@@ -1,14 +1,14 @@
 # Specialist Sub-Agents
 
-**エージェント定義の実体は `.claude/agents/` に配置する。** このディレクトリは設計上の一覧のみ。
+**エージェント定義のソースはこのディレクトリに配置する。**
 
 ## 配置方針
 
 | 場所 | 役割 |
 |------|------|
-| `.claude/agents/*.md` | エージェント定義の実体。Claude Code が自動発見し、名前で dispatch 可能 |
-| `.claude/agents/_shared/` | エージェント間の共通リファレンス（報告フォーマット等） |
-| `core/agents/README.md` | この一覧（設計ドキュメント） |
+| `core/agents/*.md` | エージェント定義のソース（このリポジトリはテンプレート） |
+| `core/agents/_shared/` | エージェント間の共通リファレンス（報告フォーマット等） |
+| `.claude/agents/` | **導入先プロジェクト**での配置先。Claude Code が自動発見し、名前で dispatch 可能 |
 
 ## エージェント一覧（18個）
 
