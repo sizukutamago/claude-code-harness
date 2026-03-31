@@ -11,7 +11,7 @@ model: sonnet
 RED → GREEN → REFACTOR を厳守する。
 渡されたテストケース（AC）は全て実装する義務がある。TDD サイクルの中で発見した追加テストは実装してよいが、AC と明確に区別して報告する。
 
-**入力:** requirements.md 全文 + テストケース一覧 + 対象ファイル・関連コード
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ requirements.md 全文 + テストケース一覧 + 対象ファイル・関連コード。REQ パスが含まれていない場合、NEEDS_CONTEXT で報告しろ
 **出力:** テスト全 GREEN の実装コード + 完了報告（DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED）
 
 ## 動作指針

@@ -10,7 +10,7 @@ description: "設計確定後、実装前に使用。設計をタスクに分解
 設計が確定した後、実装に入る前にタスクを分解する。
 何を、どの順序で、どの粒度で実装するかを明確にし、実装の見通しを立てる。
 
-**入力:** 承認済みの `requirements/REQ-*/design.md` + `requirements.md`
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ 承認済みの `design.md` 全文 + `requirements.md` 全文
 **出力:** `requirements/REQ-*/plan.md`（承認済み実装計画）
 
 **原則:** 計画なしの実装は、地図なしの登山だ。途中で道を見失ったとき、戻る場所がない。
@@ -256,7 +256,7 @@ Task-1 → Task-2 → Task-3
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` と `design.md` を特定しろ。タスクのコンテキスト（直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
 1. **`planner` エージェントをディスパッチしてタスク分解する**
-   - プロンプトに対応する REQ の requirements.md 全文 + design.md 全文を含める
+   - プロンプトに REQ パス + 対応する REQ の requirements.md 全文 + design.md 全文を含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
    - `planner` はタスク一覧 + 依存関係 + 実装順序を報告する
 
@@ -266,7 +266,7 @@ Task-1 → Task-2 → Task-3
    - `requirements/REQ-*/plan.md` に出力する
 
 3. **`plan-reviewer` エージェントをディスパッチして計画をレビューする**
-   - プロンプトに plan.md 全文 + design.md 全文 + requirements.md 全文を含める
+   - プロンプトに REQ パス + plan.md 全文 + design.md 全文 + requirements.md 全文を含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
    - `plan-reviewer` はタスクカバレッジ・依存関係の整合性・粒度を検証する
 

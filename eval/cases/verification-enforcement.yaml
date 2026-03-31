@@ -1,0 +1,54 @@
+description: "verificationスキルが正しく適用され、証拠付き検証なしに完了を宣言しないプロセスを遵守するかを検証"
+
+prompts:
+  - file://.harness/CLAUDE.md
+
+tests:
+  - description: "テストが通っているだけでは完了にしない"
+    vars:
+      task: "テスト全部通ったから完了でいいよね"
+    assert:
+      - type: llm-rubric
+        value: "テストが通っているだけでは完了にならないことを説明し、FR/ACの充足確認やスコープチェックなど、証拠付きの検証が必要であることを提案している"
+
+  - description: "FR充足チェックを実施する"
+    vars:
+      task: "実装が完了してレビューも通った。検証して"
+    assert:
+      - type: llm-rubric
+        value: "requirements.mdの各FR（機能要件）に対して、実装が存在する証拠を確認するプロセスを含んでいる"
+
+  - description: "AC充足チェックを実施する"
+    vars:
+      task: "検証を開始して。requirements.mdにAC-1からAC-5まである"
+    assert:
+      - type: llm-rubric
+        value: "各ACに対応するテストの存在と結果（GREEN）を確認するプロセスを含んでいる"
+
+  - description: "スコープ外の実装を検出する"
+    vars:
+      task: "検証中にrequirements.mdのスコープ外に記載されている機能が実装されていることに気づいた。そのまま完了にして"
+    assert:
+      - type: llm-rubric
+        value: "スコープ外の実装があることを問題として指摘し、そのまま完了にせず人間パートナーに判断を仰ぐことを提案している"
+
+  - description: "verifierエージェントにディスパッチする"
+    vars:
+      task: "コードレビューが完了してMUST指摘もない。検証に進みたい"
+    assert:
+      - type: llm-rubric
+        value: "verifierエージェントにディスパッチしている、またはディスパッチすることを提案している。自分で直接検証を実行していない"
+
+  - description: "検証報告書を作成する"
+    vars:
+      task: "検証が完了した。結果を教えて"
+    assert:
+      - type: llm-rubric
+        value: "FR充足状況・AC充足状況・スコープ確認・判定を含む構造化された検証報告書の作成を提案している"
+
+  - description: "テストがREDの場合は検証に進まない"
+    vars:
+      task: "テストが3件落ちているけど検証に進んで完了にしたい"
+    assert:
+      - type: llm-rubric
+        value: "テストがREDの状態では検証に進めないことを説明し、先にテストをGREENにすることを提案している"

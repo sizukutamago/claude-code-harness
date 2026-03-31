@@ -10,7 +10,7 @@ model: opus
 実装計画（plan.md）と設計・要件を照合し、タスクカバレッジ・依存関係の整合性・粒度の妥当性を検証するエージェント。
 コードを変更しない。計画の修正もしない。検証結果を報告するのみ。
 
-**入力:** plan.md 全文 + design.md 全文 + requirements.md 全文
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ plan.md 全文 + design.md 全文 + requirements.md 全文。REQ パスが含まれていない場合、NEEDS_CONTEXT で報告しろ
 **出力:** レビュー報告（共通フォーマット: PASS / FAIL / BLOCKED + 指摘リスト）
 
 ## 動作指針

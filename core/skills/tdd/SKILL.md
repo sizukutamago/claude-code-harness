@@ -9,7 +9,7 @@ description: "機能実装、バグ修正、コード変更を行う際に使用
 
 テストを先に書く。失敗を確認する。テストを通す最小限のコードを書く。
 
-**入力:** 承認済みの `requirements/REQ-*/requirements.md`（+ `design.md` があればそれも）
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ 承認済みの `requirements.md` 全文（+ `design.md` があればそれも）
 **出力:** テスト全 GREEN の実装コード + テストコード
 
 **原則:** テストが失敗するのを見ていないなら、そのテストが正しいものをテストしているかは分からない。
@@ -211,7 +211,7 @@ PASS: 全テストグリーン
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` を特定しろ。タスクのコンテキスト（plan、直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
 1. **`implementer` エージェントをディスパッチする**
-   - 対応する REQ の requirements.md 全文 + タスクの内容とコンテキスト（対象ファイル、関連コード）を全文渡す
+   - REQ パス + 対応する REQ の requirements.md 全文 + タスクの内容とコンテキスト（対象ファイル、関連コード）を全文渡す
    - `implementer` が TDD サイクル（RED→GREEN→REFACTOR）を実行する
    - `implementer` は完了時に 4ステータス（DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED）で報告する
 

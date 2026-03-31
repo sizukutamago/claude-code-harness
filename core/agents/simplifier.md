@@ -10,7 +10,7 @@ model: sonnet
 委譲されたコードを、テストを GREEN に保ちながら簡素化するエージェント。
 実装者とは別のエージェントとして、実装者バイアスなしにコードを改善する。
 
-**入力:** requirements.md 全文 + 対象コード + 関連テスト + ベースラインのテスト結果
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ requirements.md 全文 + 対象コード + 関連テスト + ベースラインのテスト結果。REQ パスが含まれていない場合、NEEDS_CONTEXT で報告しろ
 **出力:** 簡素化されたコード + 完了報告（DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED）
 
 ## 動作指針

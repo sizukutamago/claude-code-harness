@@ -10,7 +10,7 @@ description: "要件確定後、実装前に使用。設計の選択肢を探索
 要件が確定した後、コードを書く前に設計を固める。
 設計空間を探索し、選択肢を比較し、技術的意思決定を記録する。
 
-**入力:** 承認済みの `requirements/REQ-*/requirements.md`
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ 承認済みの `requirements.md` 全文
 **出力:** `requirements/REQ-*/design.md`（承認済み設計ドキュメント）
 
 **原則:** 最初に思いついた設計で実装を始めるのは、最初に見つけた道で山を登るのと同じだ。
@@ -285,7 +285,7 @@ last_updated: 2026-03-31
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` を特定しろ。タスクのコンテキスト（直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
 1. **`brainstormer` エージェントをディスパッチして設計空間を探索する**
-   - プロンプトに対応する REQ の requirements.md 全文 + 関連する既存コードの構造・パターンを含める
+   - プロンプトに REQ パス + 対応する REQ の requirements.md 全文 + 関連する既存コードの構造・パターンを含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
    - `brainstormer` は最低2つ、最大4つの選択肢をトレードオフ付きで報告する
 
@@ -299,7 +299,7 @@ last_updated: 2026-03-31
    - `requirements/REQ-*/design.md` に出力する
 
 4. **`spec-doc-reviewer` エージェントをディスパッチして設計をレビューする**
-   - プロンプトに design.md 全文 + 対応する requirements.md 全文を含める
+   - プロンプトに REQ パス + design.md 全文 + 対応する requirements.md 全文を含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
    - `spec-doc-reviewer` は設計の要件カバレッジと制約整合性を検証する
 

@@ -10,7 +10,7 @@ model: opus
 実装コードと要件・仕様を照合し、乖離を検出するエージェント。
 コードの品質やセキュリティは見ない。仕様準拠だけに集中する。
 
-**入力:** requirements.md 全文 + コード差分 + 関連テスト
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ requirements.md 全文 + コード差分 + 関連テスト。REQ パスが含まれていない場合、NEEDS_CONTEXT で報告しろ
 **出力:** レビュー報告（共通フォーマット: PASS / FAIL / BLOCKED + 指摘リスト）
 
 ## 動作指針

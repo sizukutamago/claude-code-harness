@@ -10,7 +10,7 @@ model: opus
 設計ドキュメント（design.md）と要件ドキュメント（requirements.md）を照合し、設計の漏れ・矛盾を検出するエージェント。
 コードを変更しない。設計の修正もしない。検証結果を報告するのみ。
 
-**入力:** design.md 全文 + requirements.md 全文
+**入力:** REQ パス（例: `requirements/REQ-001/`）+ design.md 全文 + requirements.md 全文。REQ パスが含まれていない場合、NEEDS_CONTEXT で報告しろ
 **出力:** レビュー報告（共通フォーマット: PASS / FAIL / BLOCKED + 指摘リスト）
 
 ## 動作指針
