@@ -1,27 +1,27 @@
 # Specialist Sub-Agents
 
-**エージェント定義のソースはこのディレクトリに配置する。**
+**エージェント定義は `.claude/agents/` に配置する。** このディレクトリは設計一覧のみ。
 
 ## 配置方針
 
 | 場所 | 役割 |
 |------|------|
-| `core/agents/*.md` | エージェント定義のソース（このリポジトリはテンプレート） |
-| `core/agents/_shared/` | エージェント間の共通リファレンス（報告フォーマット等） |
-| `.claude/agents/` | **導入先プロジェクト**での配置先。Claude Code が自動発見し、名前で dispatch 可能 |
+| `.claude/agents/*.md` | エージェント定義の実体。Claude Code が自動発見し、名前で dispatch 可能 |
+| `.claude/agents/_shared/` | エージェント間の共通リファレンス（報告フォーマット等） |
+| `core/agents/` | 設計一覧（この README）のみ |
 
 ## エージェント一覧（18個）
 
 | # | エージェント | model | tools | 対応スキル | 状態 |
 |---|------------|-------|-------|-----------|------|
-| 1 | requirements-analyst | Opus | Read, Grep, Glob | requirements | 未作成 |
+| 1 | requirements-analyst | Opus | Read, Grep, Glob | requirements | **完了** |
 | 2 | brainstormer | Opus | Read, Grep, Glob | brainstorming | 未作成 |
 | 3 | spec-doc-reviewer | Opus | Read, Grep, Glob | brainstorming | 未作成 |
 | 4 | planner | Opus | Read, Grep, Glob | planning | 未作成 |
 | 5 | plan-reviewer | Opus | Read, Grep, Glob | planning | 未作成 |
 | 6 | implementer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | tdd | **完了** |
 | 7 | debugger | Sonnet | Read, Grep, Glob, Write, Edit, Bash | debugging | 未作成 |
-| 8 | simplifier | Sonnet | Read, Grep, Glob, Write, Edit, Bash | simplify | 未作成 |
+| 8 | simplifier | Sonnet | Read, Grep, Glob, Write, Edit, Bash | simplify | **完了** |
 | 9 | test-quality-engineer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | test-quality | 未作成 |
 | 10 | spec-reviewer | Opus | Read, Grep, Glob | code-review | **完了** |
 | 11 | quality-reviewer | Opus | Read, Grep, Glob | code-review | **完了** |

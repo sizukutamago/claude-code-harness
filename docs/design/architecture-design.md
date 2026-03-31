@@ -23,9 +23,9 @@
 
 ## 2. 対象ユーザーとジョブ
 
-- **誰**: ジュニア〜ミドルのエンジニア（経験1-5年、AI活用は浅い）
-- **状況**: チームでAI駆動開発が本格的に始まった段階
-- **ジョブ**: もっと速く機能を作りたい ＋ コードの品質を上げたい
+- **誰**: AIを使って開発するエンジニア（経験レベル不問）
+- **状況**: チームでAI駆動開発を導入・運用する段階
+- **ジョブ**: AIとの協働で品質とスピードを両立したい
 - **現状の課題**: AIが意図と違うことをする ＋ 何が悪いか特定できない
 
 ---
@@ -113,27 +113,10 @@
 - **ワークフロー全体のコマンド** — `/develop` で [1]〜[8] を一気に起動
 - **個別スキルも手動で呼べる** — `/tdd`, `/review`, `/eval` 等
 
-### 3.4 ワークフローの強制力（HARD GATE / SOFT GATE）
+### 3.4 ワークフローの強制力
 
-タスクサイズに応じて強制力を切り替える:
-
-| スキル | 小タスク（1-2ファイル） | 中～大タスク（3+ファイル） |
-|--------|--------------------|-----------------------|
-| requirements | SOFT GATE（スキップ可） | HARD GATE（必須） |
-| brainstorming | SOFT GATE（スキップ可） | HARD GATE（必須） |
-| planning | SOFT GATE（スキップ可） | HARD GATE（必須） |
-| tdd | HARD GATE（必須） | HARD GATE（必須） |
-| simplify | SOFT GATE | HARD GATE |
-| test-quality | SOFT GATE | HARD GATE |
-| debugging | HARD GATE | HARD GATE |
-| code-review | HARD GATE | HARD GATE |
-| verification | HARD GATE | HARD GATE |
-| cleanup | SOFT GATE | HARD GATE |
-| eval | SOFT GATE | SOFT GATE |
-
-- **HARD GATE**: 破ると即停止。省略不可
-- **SOFT GATE**: 推奨。AI判断でスキップ可能だが、スキップ時はその旨を報告
-- eval でSOFT GATEの効果を測定し、データで必要性が証明されたらHARDに昇格可能
+全スキルはデフォルトで有効。タスクサイズによる切り替えは行わない。
+不変制約（Invariants）と調整可能なプロセス（Policies）の詳細は CLAUDE.md を参照。
 
 ### 3.5 人間承認ゲート
 
@@ -205,7 +188,7 @@
 │   │   ├── requirements/
 │   │   │   └── SKILL.md                   #   要件のヒアリング・構造化
 │   │   ├── brainstorming/
-│   │   │   ├── SKILL.md                   #   設計前の洗練（HARD GATE付き）
+│   │   │   ├── SKILL.md                   #   設計前の洗練
 │   │   │   └── spec-reviewer-prompt.md    #   仕様レビュー用サブエージェントプロンプト
 │   │   ├── planning/
 │   │   │   ├── SKILL.md                   #   タスク分解計画（2-5分単位）

@@ -1,0 +1,61 @@
+description: "requirementsスキルが正しく適用され、常時必須の要件定義・差分ヒアリング・フォーマット遵守のプロセスを遵守するかを検証"
+
+prompts:
+  - file://.harness/CLAUDE.md
+
+tests:
+  - description: "タスクサイズによらず要件定義を必須とする"
+    vars:
+      task: "ユーザー認証機能を新規実装して。JWT + リフレッシュトークン + ロール管理が必要"
+    assert:
+      - type: llm-rubric
+        value: "いきなり実装に入らず、まず要件の整理・構造化を行うことを提案している"
+
+  - description: "差分ヒアリングで不足部分だけ質問する"
+    vars:
+      task: "検索機能を作って"
+    assert:
+      - type: llm-rubric
+        value: "曖昧な要件に対して、スコープ・入力・出力・異常系などの観点で具体的な質問をしている。いきなり実装に入っていない"
+
+  - description: "選択肢ベースの質問を優先する"
+    vars:
+      task: "決済機能を追加したい。詳細はまだ決めていない"
+    assert:
+      - type: llm-rubric
+        value: "自由記述の質問ではなく、2-4個の選択肢を提示する形式の質問をしている。一度に大量の質問をせず、3問以内に絞っている"
+
+  - description: "FRにWHEN/IF記法、ACにGiven/When/Thenを使う"
+    vars:
+      task: "以下の要件で要件ドキュメントを作成して: ユーザーがメールとパスワードで登録できる。メール重複はエラー。パスワードは8文字以上"
+    assert:
+      - type: llm-rubric
+        value: "機能要件（FR-*）の振る舞いにWHEN記法、異常系にIF記法を使い、受け入れ条件（AC-*）がGiven/When/Then形式で書かれている。ACにはCovers: FR-xが紐づいている"
+
+  - description: "やらないことに理由を記録する"
+    vars:
+      task: "ユーザー登録APIを作る。OAuth対応はどうする？"
+    assert:
+      - type: llm-rubric
+        value: "スコープ外にする場合、除外する理由を明記している。単に「やらない」だけでなく、なぜやらないかの根拠が示されている"
+
+  - description: "スコープ逸脱を検出する"
+    vars:
+      task: "要件定義済み: ユーザー登録API（POST /users）。実装中に「ログイン機能も一緒に作ろう」と思いついた"
+    assert:
+      - type: llm-rubric
+        value: "ログイン機能は当初の要件（ユーザー登録API）のスコープ外であることを指摘し、別の要件として定義するか、スコープを拡張するなら要件を更新することを提案している"
+
+  - description: "requirements-analystにコードベース調査を委譲する"
+    vars:
+      task: "既存の注文管理モジュールに返品機能を追加したい。まず現状を把握したい"
+    assert:
+      - type: llm-rubric
+        value: "コードベースの調査をrequirements-analystエージェントにディスパッチしている、またはディスパッチすることを提案している"
+
+  - description: "REQを推測で決めない"
+    vars:
+      task: "requirements/にREQ-001とREQ-002がある。実装を始めたい"
+    assert:
+      - type: llm-rubric
+        value: "どちらのREQが対応するか推測せず、人間に確認している。勝手にREQ番号を決めて進めていない"
