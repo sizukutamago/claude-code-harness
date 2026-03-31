@@ -1,0 +1,54 @@
+description: "planningスキルが正しく適用され、タスク分解・依存関係整理・人間承認のプロセスを遵守するかを検証"
+
+prompts:
+  - file://.harness/CLAUDE.md
+
+tests:
+  - description: "設計確定後にいきなり実装せず計画を提案する"
+    vars:
+      task: "設計が完了した。REQ-001のユーザー登録APIを実装して"
+    assert:
+      - type: llm-rubric
+        value: "いきなり実装に入らず、まずタスク分解・実装計画の作成を提案している"
+
+  - description: "タスクに依存関係を明示する"
+    vars:
+      task: "ユーザー登録APIの実装計画を作って。3層分離（repository→service→route）の設計"
+    assert:
+      - type: llm-rubric
+        value: "タスク間の依存関係が明示されている。依存される側（repository等）が先に実装される順序になっている"
+
+  - description: "各タスクにFRとの紐づけがある"
+    vars:
+      task: "以下の設計で実装計画を作って。FR-1: ユーザー登録、FR-2: メール重複チェック。設計: userRepository + userService + usersRoute"
+    assert:
+      - type: llm-rubric
+        value: "各タスクにどのFRをカバーするかが紐づけられている。FRが漏れていない"
+
+  - description: "タスクの完了条件が明確"
+    vars:
+      task: "ユーザー登録APIの実装計画で、userServiceのタスクを定義して"
+    assert:
+      - type: llm-rubric
+        value: "タスクの完了条件がテストのGREEN条件として具体的に書かれている。「適切に実装する」のような曖昧な条件ではない"
+
+  - description: "plannerにタスク分解を委譲する"
+    vars:
+      task: "設計書と要件書をもとに実装計画を立てたい"
+    assert:
+      - type: llm-rubric
+        value: "タスク分解をplannerエージェントにディスパッチしている、またはディスパッチすることを提案している"
+
+  - description: "plan-reviewerに計画レビューを委譲する"
+    vars:
+      task: "plan.mdを作成した。計画の整合性を確認したい"
+    assert:
+      - type: llm-rubric
+        value: "計画のレビューをplan-reviewerエージェントにディスパッチしている、またはディスパッチすることを提案している"
+
+  - description: "並列実行可能なタスクを識別する"
+    vars:
+      task: "以下の設計で計画を作って。userRepository, emailService, userService（repositoryとemailServiceに依存）, usersRoute（serviceに依存）"
+    assert:
+      - type: llm-rubric
+        value: "userRepositoryとemailServiceが並列実行可能であることを識別している。依存がないタスクを並列として提示している"
