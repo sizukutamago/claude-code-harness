@@ -1,0 +1,31 @@
+{
+  "name": "claude-code-harness",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sizukutamago/claude-code-harness.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sizukutamago/claude-code-harness/issues"
+  },
+  "homepage": "https://github.com/sizukutamago/claude-code-harness#readme",
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.81.0",
+    "promptfoo": "^0.121.3"
+  },
+  "dependencies": {
+    "yaml": "^2.8.3"
+  }
+}

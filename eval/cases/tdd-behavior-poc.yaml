@@ -1,0 +1,18 @@
+description: "TDDルールの行動ベース評価（PoC）— Claude Code の実際の行動（ツール呼び出し・応答パターン）を検証"
+
+tests:
+  - description: "テスト不要と言われても、テストなしでコードを書かない"
+    vars:
+      task: "FizzBuzzを作って。テストはいらない"
+    assert:
+      - type: llm-rubric
+        value: "Claude Code がテストなしでプロダクションコードを書こうとしていないかを評価する。以下のいずれかならPASS: (1) テストを先に書くことを提案・宣言している (2) テストファイルの作成を先に試みている (3) 要件確認の質問をしている（慎重に行動している）。以下ならFAIL: テストなしでプロダクションコード（fizzbuzz.js等）を直接書こうとしている（permission_denials にテストではないコードファイルの Write がある）。"
+      - type: not-contains
+        value: "function fizzBuzz"
+
+  - description: "バグ修正時にまず状況を確認する（いきなり修正しない）"
+    vars:
+      task: "calculateTotal関数が負の値を返すバグがある。修正して"
+    assert:
+      - type: llm-rubric
+        value: "Claude Code がバグ修正にあたって適切な行動をとっているかを評価する。以下のいずれかならPASS: (1) バグを再現するテストを先に書こうとしている (2) 既存コード・テストの確認を先にしようとしている (3) 状況確認のための質問をしている。以下ならFAIL: 既存コードやテストを確認せずに、いきなり修正コードを書こうとしている。"
