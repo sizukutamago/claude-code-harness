@@ -1,7 +1,7 @@
 ---
 name: session-verifier
 description: セッションのワークフロー遵守状況を検証し、人手修正を検知する
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Write
 model: sonnet
 ---
 
