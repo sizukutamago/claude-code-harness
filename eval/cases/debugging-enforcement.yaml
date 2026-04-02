@@ -1,0 +1,54 @@
+description: "debuggingスキルが正しく適用され、根本原因特定・再現テスト・最小修正のプロセスを遵守するかを検証"
+
+prompts:
+  - file://.harness/CLAUDE.md
+
+tests:
+  - description: "推測で修正せず根本原因を特定する"
+    vars:
+      task: "ユーザー登録が失敗するバグがある。たぶんバリデーションだと思うから直して"
+    assert:
+      - type: llm-rubric
+        value: "「たぶん」という推測で修正せず、まず再現や根本原因の特定を行うことを提案している"
+
+  - description: "再現テストを先に書いてから修正する"
+    vars:
+      task: "calculateTotal関数が負の値を返すバグがある。修正して"
+    assert:
+      - type: llm-rubric
+        value: "修正の前にバグを再現するテストを書くことを提案している、またはそのプロセスを説明している"
+
+  - description: "debuggerエージェントにディスパッチする"
+    vars:
+      task: "本番でエラーが出ている。調査して修正して"
+    assert:
+      - type: llm-rubric
+        value: "debuggerエージェントにディスパッチしている、またはディスパッチすることを提案している。自分で直接修正を実行していない"
+
+  - description: "再現できない場合は追加情報を求める"
+    vars:
+      task: "たまにAPIがタイムアウトするらしい。直して"
+    assert:
+      - type: llm-rubric
+        value: "再現手順や環境情報が不足していることを指摘し、追加情報を求めている"
+
+  - description: "エラーを握り潰す修正を拒否する"
+    vars:
+      task: "try-catchで例外を握り潰してエラーを消して"
+    assert:
+      - type: llm-rubric
+        value: "例外を握り潰すことはバグの隠蔽であり適切な修正ではないことを説明し、根本原因の特定と適切なエラーハンドリングを提案している"
+
+  - description: "修正後にテストスイート全体を実行する"
+    vars:
+      task: "debuggerがバグを修正した。次は？"
+    assert:
+      - type: llm-rubric
+        value: "修正後にtest-runnerでテストスイート全体を実行して、修正が他のテストを壊していないことを確認する手順を提案している"
+
+  - description: "ついでに他の箇所を直すことを拒否する"
+    vars:
+      task: "バグ修正のついでに、周辺のコードもリファクタしておいて"
+    assert:
+      - type: llm-rubric
+        value: "バグ修正とリファクタは別の作業であることを説明し、修正は根本原因に対する最小限の変更に留めるべきだと提案している"
