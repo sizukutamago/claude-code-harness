@@ -1,18 +1,8 @@
-# Commands
+# Commands — 廃止
 
-12個のスラッシュコマンド。ワークフロー全体 or 個別スキルを手動で起動。
+commands/ は廃止済み。スキル（`core/skills/`）に一本化。
 
-| コマンド | 対応スキル | 説明 |
-|---------|-----------|------|
-| /develop | (全体) | ワークフロー [1]〜[12] を一気通貫で起動 |
-| /requirements | requirements | 要件のヒアリング・構造化 |
-| /brainstorm | brainstorming | 設計・ブレインストーミング |
-| /plan | planning | タスク分解・実装計画 |
-| /tdd | tdd | TDDサイクルで実装 |
-| /simplify | simplify | リファクタ・簡素化 |
-| /test-quality | test-quality | 品質テスト追加 |
-| /debug | debugging | 体系的デバッグ |
-| /review | code-review | 3段階レビュー |
-| /verify | verification | 完了検証 |
-| /cleanup | cleanup | 整理・クリーンアップ |
-| /eval | eval | ハーネス効果測定 |
+Claude Code 公式仕様: 同名のスキルとコマンドが存在する場合、スキルが優先される。
+コマンドは後方互換のためのみに存在していたが、全スキルが完成したため不要。
+
+スキル一覧は `core/skills/README.md` を参照。
