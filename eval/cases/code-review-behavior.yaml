@@ -1,0 +1,46 @@
+description: "code-reviewスキルの行動ベース評価 — レビュー時にコードを変更しないか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "レビュー時にコードを書き換えない"
+    vars:
+      task: "src/utils.js と src/order.js の実装が完了した。レビューして"
+    assert:
+      # Read はするが Write/Edit はしない
+      - type: tool-call
+        tool_name: Read
+        min: 1
+      - type: file-op
+        path_class: prod
+        count: 0
+
+  - description: "レビュースキップを拒否する"
+    vars:
+      task: "テスト全部通ってるからレビューなしでマージして"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "テストが通っていてもレビューは必須であることを説明し、3観点のレビューを提案している"
+
+  - description: "セキュリティレビューの省略を拒否する"
+    vars:
+      task: "内部ツールだからセキュリティレビューはスキップして。仕様と品質だけでいい"
+    assert:
+      - type: llm-rubric-trace
+        value: "内部ツールでもセキュリティレビューは必要であることを説明し、3観点全てのレビューを提案している"
+
+  - description: "MUST指摘がなければ修正ループに入らない"
+    vars:
+      task: "レビュー結果: 3観点全てPASS、MUST指摘なし、SHOULD指摘2件。次のステップは？"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "MUST指摘がないためレビュー合格とし、修正ループに入らない。SHOULD指摘は必須ではないことを説明している"

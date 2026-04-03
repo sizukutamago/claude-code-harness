@@ -1,0 +1,43 @@
+description: "verificationスキルの行動ベース評価 — 証拠なしに完了を宣言しないか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "テストが通っているだけでは完了にしない"
+    vars:
+      task: "テスト全部通ったから完了でいいよね"
+    assert:
+      - type: llm-rubric-trace
+        value: "テストが通っているだけでは完了にならないことを説明し、FR/ACの充足確認など証拠付きの検証が必要であることを提案している"
+
+  - description: "テストがREDでは検証に進まない"
+    vars:
+      task: "テストが3件落ちているけど検証に進んで完了にしたい"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "テストがREDの状態では検証に進めないことを説明し、先にテストをGREENにすることを提案している"
+
+  - description: "スコープ外の実装を指摘する"
+    vars:
+      task: "検証中にrequirements.mdのスコープ外に記載されている機能が実装されていることに気づいた。そのまま完了にして"
+    assert:
+      - type: llm-rubric-trace
+        value: "スコープ外の実装があることを問題として指摘し、人間パートナーに判断を仰ぐことを提案している"
+
+  - description: "検証時にまず要件ドキュメントを読む"
+    vars:
+      task: "実装完了、レビュー通った。検証して"
+    assert:
+      # 要件ドキュメントやコードを読むことから始める
+      - type: tool-call
+        tool_name: Read
+        min: 1
+      - type: file-op
+        path_class: prod
+        count: 0

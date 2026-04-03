@@ -1,0 +1,37 @@
+description: "planningスキルの行動ベース評価 — いきなりコードを書かず、タスク分解・計画を作るか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "設計確定後にいきなり実装せず計画を提案する"
+    vars:
+      task: "設計が完了した。ユーザー登録APIを実装して"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "いきなり実装に入らず、まずタスク分解・実装計画の作成を提案している"
+
+  - description: "タスクに依存関係を明示する"
+    vars:
+      task: "ユーザー登録APIの実装計画を作って。3層分離（repository→service→route）の設計"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "タスク間の依存関係が明示されている。依存される側が先に実装される順序になっている"
+
+  - description: "並列実行可能なタスクを識別する"
+    vars:
+      task: "以下の設計で計画を作って。userRepository, emailService, userService（repositoryとemailServiceに依存）, usersRoute（serviceに依存）"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "userRepositoryとemailServiceが並列実行可能であることを識別している"

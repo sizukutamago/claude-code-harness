@@ -1,0 +1,49 @@
+description: "requirementsスキルの行動ベース評価 — いきなりコードを書かず、要件整理から始めるか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "いきなり実装せず要件整理を提案する"
+    vars:
+      task: "ユーザー認証機能を新規実装して。JWT + リフレッシュトークン + ロール管理が必要"
+    assert:
+      # コードを書いていない
+      - type: file-op
+        path_class: prod
+        count: 0
+      # 質問や整理を提案している
+      - type: llm-rubric-trace
+        value: "いきなり実装に入らず、まず要件の整理・構造化を行うことを提案している"
+
+  - description: "曖昧な要件に対して質問する"
+    vars:
+      task: "検索機能を作って"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "曖昧な要件に対して、スコープ・入力・出力・異常系などの観点で具体的な質問をしている"
+
+  - description: "選択肢ベースの質問を優先する"
+    vars:
+      task: "決済機能を追加したい。詳細はまだ決めていない"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "自由記述ではなく2-4個の選択肢を提示する形式の質問をしている"
+
+  - description: "スコープ逸脱を検出する"
+    vars:
+      task: "要件定義済み: ユーザー登録API（POST /users）。実装中に「ログイン機能も一緒に作ろう」と思いついた"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "ログイン機能はスコープ外であることを指摘し、別の要件として定義するか要件を更新することを提案している"

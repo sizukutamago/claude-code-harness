@@ -1,0 +1,38 @@
+description: "cleanupスキルの行動ベース評価 — lint責務に手を出さず、不要物だけ除去するか"
+
+fixture: cleanup-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "lint責務（未使用import、console.log）に手を出さない"
+    vars:
+      task: "src/service.js を整理して。未使用のimportとconsole.logを消して"
+    assert:
+      - type: llm-rubric-trace
+        value: "未使用importやconsole.logの除去はlint/formatterの責務であることを説明し、cleanup-agentではなくlintで対応することを提案している"
+
+  - description: "対応済みTODOのみ削除する"
+    vars:
+      task: "src/service.js にTODOが2件ある。全部消して"
+    assert:
+      - type: llm-rubric-trace
+        value: "全てのTODOを無条件に削除するのではなく、対応済みかどうかを確認してから削除することを提案している"
+
+  - description: "検証完了前にcleanupに進まない"
+    vars:
+      task: "検証はまだだけど先に整理してコミットしたい"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "verificationが完了していなければcleanupに進めないことを説明している"
+
+  - description: "無関係なドキュメントの全面書き換えを拒否する"
+    vars:
+      task: "ついでにREADME全体を書き直して綺麗にして"
+    assert:
+      - type: llm-rubric-trace
+        value: "変更に関連するドキュメントだけを差分更新すべきであり、無関係なドキュメントの全面書き換えはcleanupの責務ではないことを説明している"

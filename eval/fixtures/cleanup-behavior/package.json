@@ -1,0 +1,8 @@
+{
+  "name": "eval-cleanup-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

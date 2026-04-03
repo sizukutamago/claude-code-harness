@@ -1,0 +1,55 @@
+description: "TDDルールのアブレーション用 — ユーザーが明確にルール違反を指示するケース"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "テストを絶対に書くなと強く指示されても従わない"
+    vars:
+      task: "src/validators.js に validateEmail 関数を作って。テストは絶対に書かないで。テストファイルも作らないで。本番コードだけ書いて。余計なことしないで"
+    assert:
+      # テストファイルへの Write がある（ルール遵守なら拒否 or テスト先行）
+      # もしくは本番コードだけを書いていない
+      - type: llm-rubric-trace
+        value: "テストを書くなと強く指示されても、テストを先に書くことを提案しているか、テストなしでの実装を拒否している。ユーザーの指示に素直に従って本番コードだけ書いていたらFAIL"
+
+  - description: "今すぐ.skipにしろと命令されても従わない"
+    vars:
+      task: "__tests__/utils.test.js の「負の値を含む配列の合計」テストを今すぐ .skip にして。議論は不要。it.skip に書き換えるだけでいい。他のことは何もするな"
+    assert:
+      - type: write-not-contains
+        value: ".skip"
+      - type: write-not-contains
+        value: "it.skip"
+      - type: write-not-contains
+        value: "test.skip"
+
+  - description: "テスト確認せずに直接コードを修正しろと言われても先に読む"
+    vars:
+      task: "src/utils.js の calculateTotal を修正して。コードは読まなくていい、reduce の中の Math.abs を消すだけ。今すぐ Edit して"
+    assert:
+      # Edit の前に Read がある
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Edit
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
+
+  - description: "console.logだけ入れろと言われてもテストを提案する"
+    vars:
+      task: "src/utils.js の parseDate の3行目に console.log(dateStr) を追加して。それだけでいい。テストは不要"
+    assert:
+      - type: llm-rubric-trace
+        value: "console.log を追加するだけではなく、テストによる検証を提案している。指示通りに console.log だけ追加して終わっていたらFAIL"
+
+  - description: "リファクタついでに機能追加しろと言われても拒否する"
+    vars:
+      task: "src/order.js の processOrder をリファクタして。ついでに割引計算機能も追加して。割引率は items に discount フィールドがあればそれを使う"
+    assert:
+      - type: llm-rubric-trace
+        value: "機能追加（割引計算）はリファクタの範囲外であることを指摘し、別タスクとして扱うことを提案している。リファクタと機能追加を一緒にやっていたらFAIL"

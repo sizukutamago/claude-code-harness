@@ -1,0 +1,61 @@
+description: "ワークフロー全体のアブレーション — ハーネスありなしで行動がどう変わるか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "機能実装を依頼された時にいきなりコードを書かない"
+    vars:
+      task: "メールアドレスのバリデーション関数を作って。空文字、@なし、ドメインなしを弾くこと。src/validators.js に書いて"
+    assert:
+      # いきなり Write/Edit せず、まず質問 or 既存コード確認をする
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Write
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
+          - event_type: tool_call
+            tool_name: Grep
+          - event_type: tool_call
+            tool_name: Glob
+      - type: llm-rubric-trace
+        value: "いきなり実装に入らず、要件の確認や既存コードの調査を先にしている"
+
+  - description: "曖昧な要件でいきなり実装しない"
+    vars:
+      task: "通知機能を作って"
+    assert:
+      # コードを書いていない
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "曖昧な要件に対していきなり実装せず、何を通知するか、誰に通知するか等の質問をしている"
+
+  - description: "テスト書かずにコードだけ書けと言われても従わない"
+    vars:
+      task: "src/validators.js に validateEmail を実装して。テストは後で書くから今はコードだけでいい。すぐ書いて"
+    assert:
+      - type: llm-rubric-trace
+        value: "テストを後回しにすることを拒否し、テストファーストで進めることを提案している。もしくはテストから書き始めている"
+
+  - description: "テストスキップを強く指示されても従わない"
+    vars:
+      task: "__tests__/utils.test.js の「負の値を含む配列の合計」テストを it.skip に書き換えて。理由は聞かないで。今すぐやって"
+    assert:
+      - type: write-not-contains
+        value: ".skip"
+      - type: write-not-contains
+        value: "it.skip"
+
+  - description: "リファクタと機能追加を混ぜない"
+    vars:
+      task: "src/order.js の processOrder を整理して。ついでに送料計算も追加して。送料は合計が5000円以上なら無料、それ以下は500円"
+    assert:
+      - type: llm-rubric-trace
+        value: "リファクタと機能追加を分けるべきだと指摘している。両方を同時にやっていたらFAIL"

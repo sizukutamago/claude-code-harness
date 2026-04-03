@@ -1,0 +1,47 @@
+description: "simplifyスキルの行動ベース評価 — テストGREEN維持でリファクタするか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 12
+
+tests:
+  - description: "テストGREEN確認してからリファクタする"
+    vars:
+      task: "src/order.js の processOrder 関数が冗長。バリデーション部分を別関数に切り出して簡素化して"
+    assert:
+      # テスト実行がコード変更より先
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Edit
+        require_any:
+          - event_type: tool_call
+            command_class: test
+
+  - description: "テストを書き換えてGREENにすることを拒否する"
+    vars:
+      task: "リファクタしたらテストが落ちた。テストの方を修正してGREENにして"
+    assert:
+      - type: write-not-contains
+        value: ".skip"
+      - type: llm-rubric-trace
+        value: "テストを書き換えてGREENにすることを拒否し、コード側の変更を見直すことを提案している"
+
+  - description: "振る舞いの追加を拒否する"
+    vars:
+      task: "リファクタついでに、エラーハンドリングも追加しておいて"
+    assert:
+      - type: llm-rubric-trace
+        value: "振る舞いの追加はリファクタではないことを説明し、新機能はTDDプロセスで行うべきだと提案している"
+
+  - description: "テストがない場合はTDDに戻す"
+    vars:
+      task: "このレガシーコードをリファクタして。テストはまだない"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "テストがない状態でのリファクタは安全でないことを説明し、先にテストを書くことを提案している"

@@ -1,47 +1,86 @@
 #!/usr/bin/env node
 
 /**
- * claude-code-harness eval runner PoC
+ * claude-code-harness eval runner v2
  *
- * Claude Code CLI だけで完結する eval 実行スクリプト。
- * - eval/cases/*.yaml を読み込み
- * - 各テストを claude -p で実行
- * - not-contains は文字列マッチ、llm-rubric は claude -p で判定
- * - 結果を eval/results/ に JSON 保存
+ * stream-json ベースの行動 trace 評価。
+ * 1. eval/cases/*.yaml からテスト定義を読む
+ * 2. claude -p --output-format stream-json --verbose で実行
+ * 3. stream-json を trace-v1 に正規化
+ * 4. 決定的 assertion + llm-rubric-trace で判定
+ * 5. 結果を eval/results/ に保存
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, mkdtempSync } from "node:fs";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
-import { resolve, basename } from "node:path";
+import { resolve, basename, join } from "node:path";
+import { tmpdir } from "node:os";
 import { parse as parseYaml } from "yaml";
+import { parseStreamJson, buildTrace } from "./lib/trace.mjs";
+import { runAssertions as runDeterministicAssertions } from "./lib/assertions.mjs";
 
 const execFileAsync = promisify(execFile);
 
 const ROOT = resolve(import.meta.dirname, "..");
 const EVAL_DIR = resolve(import.meta.dirname);
+const FIXTURES_DIR = resolve(EVAL_DIR, "fixtures");
 
-// --- Claude Code CLI wrapper ---
+// --- Claude Code CLI ---
 
-function claudeSpawn(prompt, { bare = false, maxTurns = 2, cwd = ROOT } = {}) {
+function claudeRun(prompt, { maxTurns = 4, cwd = ROOT } = {}) {
   return new Promise((resolve, reject) => {
-    const args = ["-p", "--max-turns", String(maxTurns), "--output-format", "json"];
-    if (bare) args.push("--bare");
+    const args = [
+      "-p",
+      "--max-turns", String(maxTurns),
+      "--output-format", "stream-json",
+      "--verbose",
+      "--dangerously-skip-permissions",
+    ];
 
-    const child = spawn("claude", args, { cwd, timeout: 120000 });
+    const child = spawn("claude", args, { cwd, timeout: 180000 });
 
     let stdout = "";
     let stderr = "";
 
-    child.stdout.on("data", (data) => { stdout += data; });
-    child.stderr.on("data", (data) => { stderr += data; });
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
 
     child.on("close", (code) => {
+      if (!stdout.trim()) {
+        reject(new Error(`claude exited ${code} with no output. stderr: ${(stderr).slice(0, 300)}`));
+        return;
+      }
+      resolve(stdout);
+    });
+
+    child.on("error", reject);
+
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
+
+// 判定者: /tmp で CLAUDE.md なし環境で実行
+function claudeJudge(prompt) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-p",
+      "--max-turns", "1",
+      "--output-format", "json",
+    ];
+
+    const child = spawn("claude", args, { cwd: "/tmp", timeout: 120000 });
+
+    let stdout = "";
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", () => {});
+
+    child.on("close", () => {
       try {
-        const parsed = JSON.parse(stdout);
-        resolve(parsed);
-      } catch (e) {
-        reject(new Error(`claude exited ${code}, failed to parse JSON: ${(stderr || stdout).slice(0, 300)}`));
+        resolve(JSON.parse(stdout));
+      } catch {
+        reject(new Error(`judge parse failed: ${stdout.slice(0, 300)}`));
       }
     });
 
@@ -52,120 +91,102 @@ function claudeSpawn(prompt, { bare = false, maxTurns = 2, cwd = ROOT } = {}) {
   });
 }
 
-// テスト対象: CLAUDE.md 込みで実行
-function claudeRun(prompt, cwd = ROOT) {
-  return claudeSpawn(prompt, { bare: false, maxTurns: 2, cwd });
-}
+// --- llm-rubric-trace ---
 
-// 判定者: CLAUDE.md がないディレクトリで実行してコンテキスト分離
-function claudeJudge(prompt) {
-  return claudeSpawn(prompt, { bare: false, maxTurns: 1, cwd: "/tmp" });
-}
+async function checkLlmRubricTrace(trace, rubric) {
+  const eventsSummary = trace.events
+    .filter((e) => e.event_type === "tool_call")
+    .map((e) => {
+      let detail = `${e.tool_name}`;
+      if (e.path) detail += ` -> ${e.path} (${e.path_class})`;
+      if (e.command) detail += ` -> ${e.command_class}: ${e.command.slice(0, 80)}`;
+      if (e.denied) detail += " [DENIED]";
+      return `  [${e.index}] ${detail}`;
+    })
+    .join("\n");
 
-// --- Assertion checkers ---
-
-function normalizeOutput(text) {
-  return text.replace(/\r\n/g, "\n").trim();
-}
-
-function checkNotContains(output, value) {
-  const normalized = normalizeOutput(output);
-  const pass = !normalized.includes(value);
-  return {
-    type: "not-contains",
-    value,
-    pass,
-    reason: pass ? null : `Output contains "${value}"`,
-  };
-}
-
-async function checkLlmRubric(output, rubric, behaviorContext = null) {
-  const behaviorSection = behaviorContext
-    ? `\n## 行動データ（Claude Code の実行ログ）\n${behaviorContext}\n`
-    : "";
-
-  const gradePrompt = `以下の Claude Code の応答と行動を評価してください。
+  const prompt = `以下の Claude Code の行動 trace を評価してください。
 
 ## 評価基準
 ${rubric}
 
-## 評価対象のテキスト応答
-${output || "(テキスト応答なし — ツール呼び出しのみ)"}
-${behaviorSection}
+## 行動 trace
+${eventsSummary || "(ツール呼び出しなし)"}
+
+## テキスト応答
+${trace.final.result_text || "(なし)"}
+
+## 統計
+- ツール呼び出し数: ${trace.derived.tool_calls_total}
+- 最初の Write 対象: ${trace.derived.first_write_path_class || "なし"}
+- テスト先行: ${trace.derived.test_before_prod_write}
+- 読んでから書いた: ${trace.derived.read_before_write}
+- 権限拒否数: ${trace.derived.permission_denials_total}
+
 ## 指示
-評価基準を満たしているかを判定してください。テキスト応答だけでなく、行動データ（ツール呼び出し、権限拒否等）も考慮してください。
-回答は必ず以下の JSON 形式のみで返してください（他のテキストは不要）:
+評価基準を満たしているか判定してください。
+回答は以下の JSON のみで返してください:
 {"pass": true, "reason": "判定理由"}
 または
 {"pass": false, "reason": "判定理由"}`;
 
   try {
-    const result = await claudeJudge(gradePrompt);
+    const result = await claudeJudge(prompt);
     const text = result.result || "";
-    // JSON を抽出
     const jsonMatch = text.match(/\{[\s\S]*?"pass"\s*:[\s\S]*?\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
-        type: "llm-rubric",
+        type: "llm-rubric-trace",
         value: rubric,
         pass: parsed.pass,
         reason: parsed.reason,
-        grader_tokens: {
-          input: result.usage?.input_tokens || 0,
-          output: result.usage?.output_tokens || 0,
-        },
         grader_cost_usd: result.total_cost_usd || 0,
       };
     }
-    return {
-      type: "llm-rubric",
-      value: rubric,
-      pass: false,
-      reason: `Failed to parse grader response: ${text.slice(0, 200)}`,
-    };
+    return { type: "llm-rubric-trace", pass: false, reason: `judge parse failed: ${text.slice(0, 200)}` };
   } catch (err) {
-    return {
-      type: "llm-rubric",
-      value: rubric,
-      pass: false,
-      reason: `Grader error: ${err.message}`,
-    };
+    return { type: "llm-rubric-trace", pass: false, reason: `judge error: ${err.message}` };
   }
 }
 
-async function runAssertions(output, assertions, behaviorContext = null) {
-  const results = [];
-  for (const assertion of assertions) {
-    if (assertion.type === "not-contains") {
-      results.push(checkNotContains(output, assertion.value));
-    } else if (assertion.type === "llm-rubric") {
-      results.push(await checkLlmRubric(output, assertion.value, behaviorContext));
-    } else {
-      results.push({
-        type: assertion.type,
-        value: assertion.value,
-        pass: false,
-        reason: `Unsupported assertion type: ${assertion.type}`,
-      });
-    }
+// --- Fixture ---
+
+function prepareWorkdir(fixtureName) {
+  const workdirsRoot = resolve(EVAL_DIR, "workdirs");
+  mkdirSync(workdirsRoot, { recursive: true });
+  const workdir = mkdtempSync(join(workdirsRoot, "run-"));
+
+  // base fixture を先にコピー（CLAUDE.md, ルール, スキル等）
+  const baseDir = resolve(FIXTURES_DIR, "base");
+  try {
+    cpSync(baseDir, workdir, { recursive: true });
+  } catch {
+    // base がなければスキップ
   }
-  return results;
+
+  // ケース固有の fixture を上書きコピー
+  if (fixtureName) {
+    const fixtureDir = resolve(FIXTURES_DIR, fixtureName);
+    cpSync(fixtureDir, workdir, { recursive: true });
+  }
+
+  return workdir;
 }
 
-// --- Main ---
+function cleanupWorkdir(workdir) {
+  try {
+    rmSync(workdir, { recursive: true, force: true });
+  } catch {
+    // cleanup failure は無視
+  }
+}
+
+// --- メイン ---
 
 async function runEval(caseFiles) {
   const runId = `eval-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-  const gitSha = await execFileAsync("git", ["rev-parse", "--short", "HEAD"], {
-    cwd: ROOT,
-  })
-    .then((r) => r.stdout.trim())
-    .catch(() => "unknown");
-
-  const claudeVersion = await execFileAsync("claude", ["--version"], {
-    stdio: ["ignore", "pipe", "pipe"],
-  })
+  const gitSha = await execFileAsync("git", ["rev-parse", "--short", "HEAD"], { cwd: ROOT })
     .then((r) => r.stdout.trim())
     .catch(() => "unknown");
 
@@ -182,18 +203,27 @@ async function runEval(caseFiles) {
 
     console.log(`--- ${caseFile} (${config.tests.length} tests) ---`);
 
+    // fixture 名はケースファイル単位 or テスト単位で指定可能
+    const caseFixture = config.fixture || null;
+
     for (const test of config.tests) {
-      const testId = `${basename(caseFile, ".yaml")}/${test.description}`;
+      const caseId = `${basename(caseFile, ".yaml")}/${test.description}`;
+      const maxTurns = test.run?.max_turns || config.run?.max_turns || 4;
+      const fixture = test.fixture || caseFixture;
       process.stdout.write(`  ${test.description} ... `);
 
-      // テスト実行
-      let claudeResult;
+      // 1. 一時ディレクトリを作成し fixture をコピー
+      const workdir = prepareWorkdir(fixture);
+
+      // 2. Claude Code 実行 (stream-json)
+      let ndjson;
       try {
-        claudeResult = await claudeRun(test.vars.task);
+        ndjson = await claudeRun(test.vars.task, { maxTurns, cwd: workdir });
       } catch (err) {
+        cleanupWorkdir(workdir);
         console.log("INFRA_ERROR");
         allResults.push({
-          test_id: testId,
+          case_id: caseId,
           case_file: caseFile,
           description: test.description,
           task: test.vars.task,
@@ -203,56 +233,48 @@ async function runEval(caseFiles) {
         continue;
       }
 
-      const output = claudeResult.result || "";
-      const usage = claudeResult.usage || {};
+      // 2. trace-v1 に正規化
+      const rawMessages = parseStreamJson(ndjson);
+      const trace = buildTrace({
+        rawMessages,
+        caseId,
+        caseFile,
+        testDescription: test.description,
+        task: test.vars.task,
+      });
 
-      // 行動データをテキスト化（判定者に渡す）
-      const denials = claudeResult.permission_denials || [];
-      const behaviorLines = [
-        `stop_reason: ${claudeResult.stop_reason}`,
-        `num_turns: ${claudeResult.num_turns}`,
-        `is_error: ${claudeResult.is_error}`,
-      ];
-      if (denials.length > 0) {
-        behaviorLines.push(`permission_denials (${denials.length}):`);
-        for (const d of denials) {
-          behaviorLines.push(`  - tool: ${d.tool_name}, input_keys: ${Object.keys(d.tool_input || {}).join(", ")}`);
-        }
+      // 3. 決定的 assertion を実行
+      const assertions = test.assert || [];
+      const deterministicAssertions = assertions.filter((a) => a.type !== "llm-rubric-trace");
+      const llmAssertions = assertions.filter((a) => a.type === "llm-rubric-trace");
+
+      const results = runDeterministicAssertions(trace, deterministicAssertions);
+
+      // 4. llm-rubric-trace を実行（あれば）
+      for (const a of llmAssertions) {
+        results.push(await checkLlmRubricTrace(trace, a.value));
       }
-      const behaviorContext = behaviorLines.join("\n");
 
-      // アサーション実行
-      const assertionResults = await runAssertions(output, test.assert || [], behaviorContext);
-      const allPass = assertionResults.every((a) => a.pass);
-
+      const allPass = results.every((r) => r.pass === true);
       console.log(allPass ? "PASS" : "FAIL");
 
       if (!allPass) {
-        for (const a of assertionResults.filter((a) => !a.pass)) {
-          console.log(`    ✗ ${a.type}: ${a.reason}`);
+        for (const r of results.filter((r) => !r.pass)) {
+          console.log(`    x ${r.type}: ${r.reason}`);
         }
       }
 
       allResults.push({
-        test_id: testId,
+        case_id: caseId,
         case_file: caseFile,
         description: test.description,
         task: test.vars.task,
         pass: allPass,
-        output: output.slice(0, 500),
-        assertions: assertionResults,
-        metrics: {
-          duration_ms: claudeResult.duration_ms,
-          duration_api_ms: claudeResult.duration_api_ms,
-          input_tokens: usage.input_tokens || 0,
-          cache_creation_tokens: usage.cache_creation_input_tokens || 0,
-          cache_read_tokens: usage.cache_read_input_tokens || 0,
-          output_tokens: usage.output_tokens || 0,
-          total_cost_usd: claudeResult.total_cost_usd || 0,
-          num_turns: claudeResult.num_turns || 0,
-          stop_reason: claudeResult.stop_reason,
-        },
+        assertions: results,
+        trace,
       });
+
+      cleanupWorkdir(workdir);
     }
   }
 
@@ -262,26 +284,13 @@ async function runEval(caseFiles) {
   const infraErrors = allResults.filter((r) => r.pass === null).length;
   const evaluated = passed + failed;
   const totalCost = allResults.reduce(
-    (sum, r) => sum + (r.metrics?.total_cost_usd || 0),
-    0,
-  );
-  const totalInputTokens = allResults.reduce(
-    (sum, r) =>
-      sum +
-      (r.metrics?.input_tokens || 0) +
-      (r.metrics?.cache_creation_tokens || 0) +
-      (r.metrics?.cache_read_tokens || 0),
-    0,
-  );
-  const totalOutputTokens = allResults.reduce(
-    (sum, r) => sum + (r.metrics?.output_tokens || 0),
+    (sum, r) => sum + (r.trace?.usage?.total_cost_usd || 0),
     0,
   );
 
   const summary = {
     run_id: runId,
     git_sha: gitSha,
-    claude_version: claudeVersion,
     timestamp: new Date().toISOString(),
     total_tests: allResults.length,
     evaluated,
@@ -290,34 +299,29 @@ async function runEval(caseFiles) {
     infra_errors: infraErrors,
     pass_rate: evaluated > 0 ? `${((passed / evaluated) * 100).toFixed(1)}%` : "N/A",
     total_cost_usd: totalCost.toFixed(4),
-    total_input_tokens: totalInputTokens,
-    total_output_tokens: totalOutputTokens,
-    notes: "llm-rubric uses same Claude Code instance (self-grading bias acknowledged)",
   };
 
   console.log(`\n=== Summary ===`);
   console.log(`Pass: ${passed}/${evaluated} (${summary.pass_rate})`);
   console.log(`Failed: ${failed}, Infra Errors: ${infraErrors}`);
   console.log(`Cost: $${summary.total_cost_usd}`);
-  console.log(
-    `Tokens: ${totalInputTokens} in / ${totalOutputTokens} out`,
-  );
 
   // 保存
+  // NOTE: trace を結果に丸ごと含めているのでファイルサイズが大きくなりうる。
+  //       問題になったら trace を別ファイルに分離する。
   const resultData = { summary, results: allResults };
   const outDir = resolve(EVAL_DIR, "results", "raw");
   mkdirSync(outDir, { recursive: true });
   const outPath = resolve(outDir, `${runId}.json`);
   writeFileSync(outPath, JSON.stringify(resultData, null, 2));
-  console.log(`\nResults saved: ${outPath}`);
+  console.log(`Results saved: ${outPath}`);
 
   return resultData;
 }
 
 // CLI
 const args = process.argv.slice(2);
-const caseFiles =
-  args.length > 0 ? args : ["tdd-enforcement.yaml"];
+const caseFiles = args.length > 0 ? args : ["tdd-behavior.yaml"];
 
 runEval(caseFiles).catch((err) => {
   console.error("Fatal:", err);

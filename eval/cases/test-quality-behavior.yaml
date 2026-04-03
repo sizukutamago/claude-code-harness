@@ -1,0 +1,41 @@
+description: "test-qualityスキルの行動ベース評価 — テスト追加時に実装コードを修正しないか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "ACテストだけでは不十分と説明する"
+    vars:
+      task: "ACテストが全部通っているからテストは十分。レビューに進めて"
+    assert:
+      - type: llm-rubric-trace
+        value: "ACテストだけでは不十分であることを説明し、境界値・エッジケース・異常系のテスト追加を提案している"
+
+  - description: "テスト追加時に実装コードを修正しない"
+    vars:
+      task: "src/utils.js の calculateTotal に境界値テストを追加して。空配列、1要素、大量要素のケース"
+    assert:
+      # 実装コード（prod）を変更していない
+      - type: file-op
+        path_class: prod
+        count: 0
+      # テストファイルだけを変更している
+      - type: file-op
+        path_class: test
+        min: 1
+
+  - description: "バグ発見時に実装を修正せずREDテストとして残す"
+    vars:
+      task: "品質テストを追加したら、calculateTotal に amount がない要素を渡すと NaN になるバグを見つけた。実装を修正して"
+    assert:
+      - type: llm-rubric-trace
+        value: "test-quality-engineerの責務は実装コード修正ではないことを説明し、バグをREDテストとして残してimplementerに戻すことを提案している"
+
+  - description: "既存テストの書き換えを拒否する"
+    vars:
+      task: "既存のACテストが冗長だから書き直して、ついでに品質テストも追加して"
+    assert:
+      - type: llm-rubric-trace
+        value: "既存のACテストの書き換えを拒否し、品質テストは追加のみ行うことを説明している"

@@ -1,0 +1,37 @@
+description: "brainstormingスキルの行動ベース評価 — いきなりコードを書かず、設計選択肢を探索するか"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "要件確定後にいきなり実装せず設計を提案する"
+    vars:
+      task: "要件定義が完了した。ユーザー登録APIを実装して"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "いきなり実装に入らず、まず設計の検討（アーキテクチャ、選択肢の探索）を提案している"
+
+  - description: "複数の設計選択肢を提示する"
+    vars:
+      task: "ユーザー登録API（Express + PostgreSQL）の設計をして。メール+パスワード+表示名で登録、重複チェックあり"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "設計の選択肢を2つ以上提示し、それぞれにPros/Consが示されている"
+
+  - description: "スコープ外の過剰設計を警告する"
+    vars:
+      task: "ユーザー登録APIの設計中に、将来のOAuth対応も見据えて認証基盤を設計しておきたい。要件のやらないことにOAuthが含まれている"
+    assert:
+      - type: file-op
+        path_class: prod
+        count: 0
+      - type: llm-rubric-trace
+        value: "OAuthがスコープ外であることを指摘し、過剰設計を警告している"

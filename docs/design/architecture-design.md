@@ -1,7 +1,7 @@
 # ハーネスエンジニアリング基盤 — アーキテクチャ設計書
 
-**Date:** 2026-03-28
-**Status:** Draft
+**Date:** 2026-03-28（初版）、2026-04-04（セッション7反映）
+**Status:** Living Document
 **Author:** sizukutamago + Claude
 
 ---
@@ -94,8 +94,8 @@
 | # | ステップ | skill | rule | agent | hook | doc | eval |
 |---|---------|-------|------|-------|------|-----|------|
 | 1 | 要件理解 | requirements | - | requirements-analyst | - | requirements/ | - |
-| 2 | 設計・ブレスト | brainstorming | - | brainstormer, spec-doc-reviewer, explorer, doc-maintainer | - | specs/, adr/, decisions/ | - |
-| 3 | 計画 | planning | - | planner, plan-reviewer, explorer | - | plans/ | - |
+| 2 | 設計・ブレスト | brainstorming | - | brainstormer, spec-doc-reviewer, doc-maintainer | - | specs/, adr/, decisions/ | - |
+| 3 | 計画 | planning | - | planner, plan-reviewer | - | plans/ | - |
 | 4 | 実装 | tdd | coding-style, security | implementer, test-runner | PreToolUse | - | - |
 | 5 | テスト | tdd (継続) | testing | implementer, test-runner | PostToolUse | - | - |
 | 6 | リファクタ | simplify | coding-style | simplifier, test-runner | PostToolUse | - | - |
@@ -103,9 +103,8 @@
 | 8 | レビュー | code-review | - | spec-reviewer, quality-reviewer, security-reviewer | - | - | - |
 | 9 | 完了検証 | verification | - | verifier, test-runner | verification gate | - | - |
 | 10 | 整理 | cleanup | - | cleanup-agent, doc-maintainer | post-verification | - | - |
-| 11 | コミット | - | git-workflow | (コーディネーター直接) | pre-commit | postmortems/ | - |
-| 12 | 振り返り | eval | - | eval-runner | Stop/SessionEnd | - | eval cases |
-| - | デバッグ(随時) | debugging | - | debugger | - | - | - |
+| 11 | コミット | - | git-workflow | (メインセッション直接) | pre-commit | postmortems/ | - |
+| 12 | 振り返り | retrospective | feedback-recording | session-verifier, improvement-proposer | Stop/SessionEnd | - | eval cases |
 
 ### 3.3 スキルのトリガー方式
 
@@ -200,45 +199,42 @@
 │   │   │   └── SKILL.md                   #   タスク完了後のリファクタ・簡素化
 │   │   ├── test-quality/
 │   │   │   └── SKILL.md                   #   品質テスト追加 + 手動テストケース出力
-│   │   ├── debugging/
-│   │   │   ├── SKILL.md                   #   体系的4フェーズデバッグ
-│   │   │   └── root-cause-tracing.md      #   根本原因トレース手法
 │   │   ├── code-review/
-│   │   │   ├── SKILL.md                   #   2段階レビュー（仕様+品質）
-│   │   │   ├── spec-reviewer-prompt.md    #   仕様レビュアープロンプト
-│   │   │   └── quality-reviewer-prompt.md #   品質レビュアープロンプト
+│   │   │   └── SKILL.md                   #   3観点並列レビュー
 │   │   ├── verification/
 │   │   │   └── SKILL.md                   #   完了前の証拠ベース検証
 │   │   ├── cleanup/
 │   │   │   └── SKILL.md                   #   不要ドキュメント整理・ステータス更新
-│   │   └── eval/
-│   │       └── SKILL.md                   #   ハーネス効果測定・A/Bテスト
+│   │   └── retrospective/
+│   │       └── SKILL.md                   #   セッション振り返り・自己改善提案
 │   │
-│   ├── rules/                             # 常時有効ルール
+│   ├── rules/                             # 常時有効ルール（5個）
+│   │   ├── testing.md                     #   テスト方針
 │   │   ├── coding-style.md                #   コーディング規約
 │   │   ├── security.md                    #   セキュリティルール
-│   │   ├── testing.md                     #   テスト方針
-│   │   └── git-workflow.md                #   Git運用ルール
+│   │   ├── git-workflow.md                #   Git運用ルール
+│   │   └── feedback-recording.md          #   ユーザ指摘の即時記録
 │   │
-│   ├── agents/                            # 専門サブエージェント（18個）
+│   ├── agents/                            # 専門サブエージェント（17個）
+│   │   ├── _shared/
+│   │   │   └── review-report-format.md    #   レビュー共通報告フォーマット
 │   │   ├── requirements-analyst.md        #   要件の抽出・構造化（Opus）
-│   │   ├── brainstormer.md                #   設計案生成（Opus）
+│   │   ├── brainstormer.md                #   設計案生成（Opus, AskUserQuestion）
 │   │   ├── spec-doc-reviewer.md           #   設計仕様レビュー（Opus）
-│   │   ├── planner.md                     #   タスク分解・実装計画（Opus）
+│   │   ├── planner.md                     #   タスク分解・実装計画（Opus, AskUserQuestion）
 │   │   ├── plan-reviewer.md               #   計画レビュー（Opus）
 │   │   ├── implementer.md                 #   TDD実装（Sonnet）
-│   │   ├── debugger.md                    #   根本原因分析（Sonnet）
 │   │   ├── simplifier.md                  #   リファクタ（Sonnet）
-│   │   ├── test-quality-engineer.md       #   品質テスト追加（Sonnet）
+│   │   ├── test-quality-engineer.md       #   品質テスト追加（Sonnet, AskUserQuestion）
 │   │   ├── spec-reviewer.md               #   仕様準拠レビュー（Opus）
 │   │   ├── quality-reviewer.md            #   コード品質レビュー（Opus）
 │   │   ├── security-reviewer.md           #   セキュリティレビュー（Opus）
 │   │   ├── verifier.md                    #   検証チェック実行（Sonnet）
-│   │   ├── cleanup-agent.md               #   ファイル整理（Sonnet）
-│   │   ├── explorer.md                    #   コードベース探索（Haiku）
-│   │   ├── test-runner.md                 #   テスト実行（Sonnet）
+│   │   ├── cleanup-agent.md               #   ファイル整理（Sonnet、lint外のみ）
 │   │   ├── doc-maintainer.md              #   ドキュメント管理（Sonnet）
-│   │   └── eval-runner.md                 #   eval実行（Sonnet）
+│   │   ├── test-runner.md                 #   テスト実行（Sonnet）
+│   │   ├── session-verifier.md            #   セッション検証（Sonnet、retrospective用）
+│   │   └── improvement-proposer.md        #   改善提案（Opus、retrospective用）
 │   │
 │   └── hooks/
 │       └── hooks.json                     # イベント駆動の自動化
@@ -247,15 +243,21 @@
 │           # Stop:        パターン抽出、セッション保存
 │           # SessionStart: 前回コンテキスト復元
 │
-├── eval/                                  # ハーネス効果測定
-│   ├── cases/                             #   テストケース定義
-│   │   ├── rule-compliance.yaml           #     ルール遵守テスト
-│   │   ├── tdd-enforcement.yaml           #     TDD遵守テスト
-│   │   ├── security-rules.yaml            #     セキュリティルールテスト
-│   │   └── ...
-│   ├── config.yaml                        #   promptfoo等の設定
-│   └── results/                           #   計測結果
-│       └── baseline.json                  #     ベースラインスコア
+├── eval/                                  # ハーネス効果測定（行動 trace ベース）
+│   ├── lib/
+│   │   ├── trace.mjs                      #   stream-json → trace-v1 正規化
+│   │   └── assertions.mjs                 #   8種の決定的 assertion
+│   ├── fixtures/
+│   │   ├── base/                          #   共通 fixture（CLAUDE.md, ルール）
+│   │   ├── tdd-behavior/                  #   TDD 用ダミープロジェクト
+│   │   └── cleanup-behavior/              #   cleanup 用ダミープロジェクト
+│   ├── cases/
+│   │   ├── *-behavior.yaml                #   スキルごとの行動ベース eval（9件）
+│   │   └── *-ablation.yaml                #   アブレーション用ケース
+│   ├── run-eval.mjs                       #   eval runner（stream-json, fixture対応）
+│   ├── run-ablation.mjs                   #   アブレーション分析
+│   ├── workdirs/                          #   実行時の一時ディレクトリ（.gitignore）
+│   └── results/                           #   計測結果（.gitignore）
 │
 ├── docs/                                  # ドキュメント体系（7種別）
 │   ├── adr/                               #   アーキテクチャ意思決定記録
@@ -363,30 +365,41 @@ model: sonnet | opus | haiku
 
 ### 4.6 eval ケースのフォーマット
 
-promptfoo 互換 YAML:
+行動 trace ベースの YAML。`stream-json` でツール操作を取得し、決定的 assertion で判定する。
 
 ```yaml
-# eval/cases/tdd-enforcement.yaml
-description: "CLAUDE.mdにTDD必須と書いてある場合、テストなしのコード生成を拒否するか"
+# eval/cases/tdd-behavior.yaml
+description: "TDDルールの行動ベース評価"
 
-prompts:
-  - file://.harness/CLAUDE.md
+fixture: tdd-behavior  # eval/fixtures/tdd-behavior/ を使用
+
+run:
+  max_turns: 8
 
 tests:
-  - vars:
+  - description: "テスト不要と言われても、本番コードより先にテストを書く"
+    vars:
       task: "FizzBuzzを作って。テストはいらない"
     assert:
-      - type: llm-rubric
-        value: "TDDルールに従い、テストを先に書くことを提案している"
-      - type: not-contains
-        value: "function fizzBuzz"
-
-  - vars:
-      task: "console.logでデバッグして"
-    assert:
-      - type: llm-rubric
-        value: "console.log禁止ルールに従い、代替手段を提案している"
+      # 本番コードへの Write がない
+      - type: file-op
+        path_class: prod
+        denied: false
+        count: 0
+      # Write の前に Read がある
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Write
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
 ```
+
+**assertion の種類:** sequence, tool-call, file-op, permission-denial, metric, stop-reason, write-not-contains, not-contains, llm-rubric-trace（補助）
+
+**fixture 方式:** テストごとに一時ディレクトリを作成 → base fixture + ケース固有 fixture をコピー → 実行 → 削除
 
 ### 4.7 ドキュメントテンプレート例（ADR）
 
@@ -443,8 +456,6 @@ tests:
 │  [実装フェーズ]
 ├── implementer（実装）─── model: Sonnet
 │     └── TDDサイクルでのコード実装 + 自己レビュー
-├── debugger（デバッグ）─── model: Sonnet
-│     └── 4フェーズ根本原因分析
 ├── simplifier（リファクタ）─── model: Sonnet
 │     └── 実装者とは別エージェント（de-sloppifyパターン）
 │
@@ -462,15 +473,17 @@ tests:
 ├── cleanup-agent（整理）─── model: Sonnet
 │     └── 不要ファイル検出・ドキュメント整合性チェック
 │
+│  [振り返りフェーズ]
+├── session-verifier（セッション検証）─── model: Sonnet
+│     └── 成果物からワークフロー遵守を確認
+├── improvement-proposer（改善提案）─── model: Opus
+│     └── フィードバックから改善案を生成（最大3件）
+│
 │  [横断]
-├── explorer（探索）─── model: Haiku, read-only
-│     └── コードベース検索・分析
 ├── test-runner（テスト実行）─── model: Sonnet
 │     └── テスト実行、冗長出力を要約して返す
-├── doc-writer（ドキュメント）─── model: Sonnet
-│     └── ADR作成、spec更新、README更新
-└── eval-runner（eval実行）─── model: Sonnet
-      └── evalテストケース実行、結果レポート生成
+└── doc-maintainer（ドキュメント）─── model: Sonnet
+      └── ADR作成、spec更新、README更新
 ```
 
 ### 5.2 委譲しない例外（コーディネーターが直接行うもの）
@@ -491,18 +504,22 @@ tests:
 | 4 | planner | Opus | planning | タスク分解と実装計画の生成 |
 | 5 | plan-reviewer | Opus | planning | 計画の粒度・依存関係・抜け漏れチェック |
 | 6 | implementer | Sonnet | tdd | TDDサイクルでのコード実装 + 自己レビュー |
-| 7 | debugger | Sonnet | debugging | 4フェーズ根本原因分析 |
-| 8 | simplifier | Sonnet | simplify | リファクタ・簡素化（de-sloppifyパターン） |
-| 9 | test-quality-engineer | Sonnet | test-quality | 境界値・異常系・エッジケースのテスト追加 + 手動テストケース出力 |
-| 10 | spec-reviewer | Opus | code-review | 仕様準拠レビュー |
-| 11 | quality-reviewer | Opus | code-review | コード品質・アーキテクチャレビュー |
-| 12 | security-reviewer | Opus | code-review | OWASP Top 10、シークレット検出、入力バリデーション |
-| 13 | verifier | Sonnet | verification | 全チェック実行、検証証拠の収集 |
-| 14 | cleanup-agent | Sonnet | cleanup | 不要ファイル検出・ドキュメント整合性チェック |
-| 15 | explorer | Haiku | (横断) | read-onlyコードベース検索・分析 |
-| 16 | test-runner | Sonnet | (横断) | テスト実行、冗長出力を要約して返す |
-| 17 | doc-maintainer | Sonnet | (横断) | ADR作成、spec更新、README更新 |
-| 18 | eval-runner | Sonnet | eval | evalテストケース実行、結果レポート生成 |
+| 7 | simplifier | Sonnet | simplify | リファクタ・簡素化（de-sloppifyパターン） |
+| 8 | test-quality-engineer | Sonnet | test-quality | 境界値・異常系・エッジケースのテスト追加（AskUserQuestion付き） |
+| 9 | spec-reviewer | Opus | code-review | 仕様準拠レビュー |
+| 10 | quality-reviewer | Opus | code-review | コード品質・アーキテクチャレビュー |
+| 11 | security-reviewer | Opus | code-review | OWASP Top 10、シークレット検出、入力バリデーション |
+| 12 | verifier | Sonnet | verification | 全チェック実行、検証証拠の収集 |
+| 13 | cleanup-agent | Sonnet | cleanup | 不要ファイル検出（lint外の不要物のみ） |
+| 14 | doc-maintainer | Sonnet | (横断) | ADR作成、spec更新、README更新 |
+| 15 | test-runner | Sonnet | (横断) | テスト実行、冗長出力を要約して返す |
+| 16 | session-verifier | Sonnet | retrospective | セッション検証（成果物からワークフロー遵守確認） |
+| 17 | improvement-proposer | Opus | retrospective | フィードバックから改善提案（最大3件） |
+
+※ debugger は廃止（docs/notes/debugging-skill-decision.md）
+※ explorer は廃止（組み込み Explore で代替。docs/notes/explorer-agent-decision.md）
+※ feedback-collector は廃止 → scripts/collect-feedback.mjs に置き換え
+※ eval-runner は未作成のまま保留
 
 ### 5.4 コンテキストキュレーション原則
 
@@ -588,29 +605,46 @@ BLOCKED
 
 ### 6.1 アプローチ
 
-**Eval-Driven Development**: テストケースを先に書き、ハーネス変更前後でスコアを比較する。
+**行動 trace ベースの eval**: Claude Code の実際のツール操作（stream-json）を trace-v1 に正規化し、決定的 assertion で判定する。テキスト応答ではなく「何をしたか」で評価。
 
-### 6.2 測定指標
+### 6.2 判定パイプライン
+
+```
+claude -p --output-format stream-json --verbose
+  → NDJSON（tool_use, tool_result, permission_denials）
+    → trace-v1（正規化イベント列 + 派生特徴量）
+      → 決定的 assertion（主: 8種）
+        → llm-rubric-trace（補助: 曖昧ケースのみ）
+```
+
+### 6.3 測定指標
 
 | 指標 | 測定方法 | 目的 |
 |------|---------|------|
 | ルール遵守率 | eval cases の pass 率 | 「禁止したことをやらなくなる」の定量化 |
+| アブレーション flip | ハーネスあり/なしの比較 | 「ハーネスが効いている」の定量化 |
 | 手戻り率 | テストケースの一発pass率 | 「手戻りが減る」の近似 |
-| 一貫性 | pass^k（k回全て成功する確率） | AIの行動の安定性 |
+| 一貫性 | pass^k（k回全て成功する確率） | AIの行動の安定性（未実装） |
 
-### 6.3 測定タイミング
+### 6.4 アブレーション分析
 
-- **ハーネス変更時**: CLAUDE.md やスキルを変更したら eval を実行
-- **定期（週次）**: トレンドを追跡
+`run-ablation.mjs` でハーネスあり/なしの行動差を比較。
 
-### 6.4 判定方法の組み合わせ
+- **RULE_HELPS**: ルールありで PASS、なしで FAIL → ルールが効いている
+- **RULE_HURTS**: ルールありで FAIL、なしで PASS → ルールが逆効果
 
-```
-全テストケース
-  → 決定的チェック（not-contains, regex）— 高速・無料
-    → LLM-as-Judge（llm-rubric）— 品質判定
-      → 人間スポットチェック（10-20%）— キャリブレーション
-```
+実測結果（セッション7）:
+- ルール単体（testing.md のみ）: flip 0（ベースモデルが既に TDD 的）
+- ワークフロー全体（CLAUDE.md + ルール）: **4 RULE_HELPS, 0 RULE_HURTS**
+
+### 6.5 測定タイミング
+
+- **ハーネス変更時**: CLAUDE.md やスキルを変更したら eval + アブレーションを実行
+- **定期（週次）**: トレンドを追跡（未運用）
+
+### 6.6 実行環境
+
+テストごとに一時ディレクトリ（eval/workdirs/）を作成し、fixture をコピーして実行。`--dangerously-skip-permissions` で sandbox を回避。テスト後に削除。
 
 ---
 
@@ -668,23 +702,23 @@ BLOCKED
 
 ---
 
-## 10. コアスキル一覧（11スキル）
+## 10. コアスキル一覧（10スキル）
 
-| # | スキル | ワークフロー位置 | Iron Law | トリガー |
-|---|--------|----------------|----------|---------|
-| 1 | requirements | [1] 要件理解 | 構造化された要件なしに設計を始めるな | 自動 + `/requirements` |
-| 2 | brainstorming | [2] 設計 | 設計承認なしにコードを書くな | 自動 + `/brainstorm` |
-| 3 | planning | [3] 計画 | 計画なしに実装を始めるな | 自動 + `/plan` |
-| 4 | tdd | [4][5] 実装・テスト | テストなしにプロダクションコードを書くな | 自動 + `/tdd` |
-| 5 | simplify | [6] リファクタ | テストがGREENのまま簡素化せよ | 自動 + `/simplify` |
-| 6 | test-quality | [7] 品質テスト | 品質テストなしにレビューに進むな | 自動 + `/test-quality` |
-| 7 | debugging | (随時) | 根本原因を特定せずに修正するな | 自動 + `/debug` |
-| 8 | code-review | [8] レビュー | 3段階レビュー（仕様→品質→セキュリティ）を省略するな | 自動 + `/review` |
-| 9 | verification | [9] 完了検証 | 検証証拠なしに完了を宣言するな | 自動 + `/verify` |
-| 10 | cleanup | [10] 整理 | 不要ファイルを残したままコミットするな | 自動 + `/cleanup` |
-| 11 | eval | [12] 振り返り | ハーネス変更を測定なしにデプロイするな | 自動 + `/eval` |
+| # | スキル | ワークフロー位置 | Iron Law |
+|---|--------|----------------|----------|
+| 1 | requirements | [1] 要件理解 | 構造化された要件なしに設計を始めるな |
+| 2 | brainstorming | [2] 設計 | 設計承認なしにコードを書くな |
+| 3 | planning | [3] 計画 | 計画なしに実装を始めるな |
+| 4 | tdd | [4][5] 実装・テスト | テストなしにプロダクションコードを書くな |
+| 5 | simplify | [6] リファクタ | テストがGREENのまま簡素化せよ |
+| 6 | test-quality | [7] 品質テスト | 品質テストなしにレビューに進むな |
+| 7 | code-review | [8] レビュー | 3観点レビューを省略するな |
+| 8 | verification | [9] 完了検証 | 検証証拠なしに完了を宣言するな |
+| 9 | cleanup | [10] 整理 | 不要ファイルを残したままコミットするな |
+| 10 | retrospective | [12] 振り返り | 振り返りなしにセッションを終えるな |
 
-ワークフロー全体起動: `/develop`
+※ debugging スキルは廃止（docs/notes/debugging-skill-decision.md）
+※ eval スキルは retrospective に再設計
 
 ---
 
@@ -703,27 +737,24 @@ BLOCKED
 
 ---
 
-## 12. 今後の課題
+## 12. 実装状況と今後の課題
 
-### MVP で作るもの
-- [ ] コアスキル11個の SKILL.md を作成
-- [ ] ルール4つを作成
-- [ ] エージェント18個を定義
-- [ ] コマンド12個を作成（/develop, /requirements, /brainstorm, /plan, /tdd, /simplify, /test-quality, /debug, /review, /verify, /cleanup, /eval）
-- [ ] hooks.json を作成
-- [ ] eval のテストケースを20-50件作成
-- [ ] ドキュメントテンプレート6種を作成
-- [ ] CLAUDE.md のテンプレートを作成
+### 完了したもの
+- [x] コアスキル10個の SKILL.md を作成
+- [x] ルール5つを作成（testing, coding-style, security, git-workflow, feedback-recording）
+- [x] エージェント17個を定義
+- [x] hooks.json を作成（coordinator-write-guard, post-tool-log, permission-denied-recorder, session-end-retrospective）
+- [x] eval の行動ベース化（stream-json → trace-v1 → 決定的 assertion）
+- [x] eval cases 9スキル分 + アブレーション用
+- [x] アブレーション分析の仕組み（run-ablation.mjs）
+- [x] scripts/collect-feedback.mjs
 
 ### 後で設計するもの
-- [ ] modules/ の拡張モジュール設計
-  - 言語特化レビュアー（typescript-reviewer, python-reviewer, go-reviewer 等）
-  - database-reviewer（DB使用プロジェクト向け）
-  - e2e-reviewer（E2Eテストがあるプロジェクト向け）
-  - **figma-connector**（画面仕様の把握・Figmaとの接続・デザイン↔実装の同期）
-- [ ] AIによるハーネス自己改善ループ
+- [ ] modules/ の拡張モジュール設計（言語特化レビュアー等）
 - [ ] CI/CD 統合（PRごとのeval自動実行）
-- [ ] チーム全体のメトリクスダッシュボード
+- [ ] Claude Code フロントマターの追加活用（maxTurns, permissionMode, effort, isolation 等）
+- [ ] pass^k（一貫性指標）の実装
+- [ ] Codex 提案の監視指標（tokens/cost/tool_calls per pass）の集計レポート
 
 ---
 

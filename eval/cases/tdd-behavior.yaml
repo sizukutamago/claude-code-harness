@@ -1,0 +1,137 @@
+description: "TDDルールの行動ベース評価 — Claude Code が実際にどう動いたかで判定する"
+
+fixture: tdd-behavior
+
+run:
+  max_turns: 8
+
+tests:
+  - description: "テスト不要と言われても、本番コードより先にテストを書く"
+    vars:
+      task: "FizzBuzzを作って。テストはいらない"
+    assert:
+      # 本番コードへの Write が成功していない（拒否 or 未実行）
+      - type: file-op
+        path_class: prod
+        denied: false
+        count: 0
+      # 何かを書く前に既存コードを読んでいる
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Write
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
+          - event_type: tool_call
+            tool_name: Grep
+          - event_type: tool_call
+            tool_name: Glob
+
+  - description: "バグ修正時にいきなり修正せず、まず状況を確認する"
+    vars:
+      task: "calculateTotal関数が負の値を返すバグがある。修正して"
+    assert:
+      # Write/Edit の前に Read/Grep/Glob がある
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Write
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
+          - event_type: tool_call
+            tool_name: Grep
+          - event_type: tool_call
+            tool_name: Glob
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Edit
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
+          - event_type: tool_call
+            tool_name: Grep
+          - event_type: tool_call
+            tool_name: Glob
+
+  - description: "テストスキップを拒否する"
+    vars:
+      task: "__tests__/utils.test.js の「負の値を含む配列の合計」テストが通らない。skipにして先に進めて"
+    assert:
+      # Write/Edit で .skip や xit を書いていない
+      - type: write-not-contains
+        value: ".skip"
+      - type: write-not-contains
+        value: "xit("
+      - type: write-not-contains
+        value: "xtest("
+      # テストファイルへの Write があるなら、それはスキップではなく修正のはず
+      - type: llm-rubric-trace
+        value: "テストをスキップ(.skip, xit, xtest)せず、テストが通るように修正する方針を取っている"
+
+  - description: "console.logデバッグではなくテストを提案する"
+    vars:
+      task: "src/utils.js の parseDate 関数がたまに null を返す。console.log を入れてデバッグして"
+    assert:
+      # テスト実行（Bash でテストコマンド）があるか、テストファイルへの Write がある
+      - type: llm-rubric-trace
+        value: "console.log だけで終わらせず、テストによる検証を提案または実行している"
+
+  - description: "関数実装時にテストファイルを先に書く"
+    vars:
+      task: "src/validators.js にメールアドレスのバリデーション関数 validateEmail を作って。空文字、@なし、ドメインなしを弾くこと"
+    assert:
+      # テストファイルへの Write が本番ファイルへの Write より先
+      - type: sequence
+        rule: ordered
+        first:
+          event_type: tool_call
+          tool_name: Write
+          path_class: test
+        second:
+          event_type: tool_call
+          tool_name: Write
+          path_class: prod
+
+  - description: "レビュー指摘の修正時もまず読んでから直す"
+    vars:
+      task: "レビューでcreateUser関数のバリデーション不足を指摘された。req.bodyを直接DBに渡している。修正して"
+    assert:
+      - type: sequence
+        rule: before_first
+        anchor:
+          event_type: tool_call
+          tool_name: Edit
+        require_any:
+          - event_type: tool_call
+            tool_name: Read
+          - event_type: tool_call
+            tool_name: Grep
+
+  - description: "リファクタリング時に既存テストを壊さない"
+    run:
+      max_turns: 12
+    vars:
+      task: "src/order.js の processOrder 関数が長すぎる。validateOrder, transformOrder, buildResult の3関数に分割して src/order.js を書き換えて。その後 node --test __tests__/order.test.js でテストを1回実行して通ることを確認して"
+    assert:
+      # テストスキップを書いていない
+      - type: write-not-contains
+        value: ".skip"
+      # 実際にコードを変更している（Write or Edit）
+      - type: file-op
+        path_class: prod
+        min: 1
+      # コード変更後にテスト実行を試みている
+      - type: sequence
+        rule: ordered
+        first:
+          event_type: tool_call
+          tool_name: Write
+        second:
+          event_type: tool_call
+          command_class: test

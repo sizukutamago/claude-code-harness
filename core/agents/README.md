@@ -10,7 +10,7 @@
 | `.claude/agents/_shared/` | エージェント間の共通リファレンス（報告フォーマット等） |
 | `core/agents/` | 設計一覧（この README）のみ |
 
-## エージェント一覧（18個）
+## エージェント一覧（17個）
 
 | # | エージェント | model | tools | 対応スキル | 状態 |
 |---|------------|-------|-------|-----------|------|
@@ -28,7 +28,6 @@
 | 12 | security-reviewer | Opus | Read, Grep, Glob | code-review | **完了** |
 | 13 | verifier | Sonnet | Read, Grep, Glob, Bash | verification | 未作成 |
 | 14 | cleanup-agent | Sonnet | Read, Grep, Glob, Write, Edit, Bash | cleanup | 未作成 |
-| 15 | explorer | Haiku | Read, Grep, Glob | (横断) | 未作成 |
 | 16 | test-runner | Sonnet | Read, Grep, Glob, Bash | (横断) | **完了** |
 | 17 | doc-maintainer | Sonnet | Read, Grep, Glob, Write, Edit | (横断) | 未作成 |
 | 18 | eval-runner | Sonnet | Read, Grep, Glob, Bash | eval | 未作成 |
