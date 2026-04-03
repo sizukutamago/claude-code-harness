@@ -1,6 +1,6 @@
 # 引き継ぎドキュメント — claude-code-harness
 
-**Date:** 2026-04-02
+**Date:** 2026-04-03
 **前回作業リポジトリ:** このリポジトリ（claude-code-harness）
 
 ---
@@ -278,9 +278,13 @@ claude-code-harness/
 │   │   ├── git-workflow.md                # ★完了（セッション5）
 │   │   ├── feedback-recording.md          # ★完了（セッション5）ユーザ指摘の即時記録
 │   │   └── README.md
-│   ├── hooks/                             # 未作成
-│   └── commands/                          # 廃止予定
-│       └── README.md
+│   └── hooks/                             # ★完了（セッション6）
+│       ├── hooks.json
+│       └── scripts/
+│           ├── coordinator-write-guard.mjs
+│           ├── post-tool-log.mjs
+│           ├── permission-denied-recorder.mjs
+│           └── session-end-retrospective.mjs
 │
 ├── eval/
 │   ├── cases/
@@ -352,10 +356,7 @@ claude-code-harness/
 
 | # | タスク | 備考 |
 |---|--------|------|
-| 1 | hooks.json | PostToolUse で session-tool-log.jsonl に記録（collect-feedback.mjs が参照）、Stop で retrospective 自動起動 |
-| 2 | commands/ ディレクトリの整理 | README.md 更新 or 削除 |
-| 3 | Policies の切替機能 | プロジェクト設定で Policies を調整する仕組み |
-| 4 | explorer エージェント | Haiku, read-only。横断的なコードベース探索 |
+| 1 | explorer エージェント | Haiku, read-only。横断的なコードベース探索 |
 
 ### eval 計測基盤の改善
 
