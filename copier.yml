@@ -1,23 +1,35 @@
 _min_copier_version: "9.0.0"
 
 _exclude:
+  # テンプレート管理ファイル
   - copier.yml
+  - ".git/"
+  - ".github/"
+  # ハーネスリポジトリ固有（導入先に不要）
   - docs/
   - eval/
   - modules/
-  - core/
+  - scripts/
+  - plans/
+  - ".harness/"
+  # プロジェクト既存ファイル（上書きしない）
   - CLAUDE.md
+  - HANDOVER.md
   - README.md
+  - ".gitignore"
+  # ハーネスリポジトリのメタファイル
+  - package.json
+  - package-lock.json
+  # 導入先に不要な md（.claude/ 内は除く）
   - "*.md"
   - "!.claude/**/*.md"
-  - ".git/"
-  - ".github/"
-  - ".harness/"
 
-modules:
-  type: list
-  choices:
-    playwright-mcp: Playwright MCP（ブラウザ操作・画面確認）
-    figma-mcp: Figma MCP（Figma 参照・編集）
-  default: []
-  help: 使用するモジュールを選択（複数可）
+use_playwright_mcp:
+  type: bool
+  default: false
+  help: "Playwright MCP を使用する？（ブラウザ操作・画面確認）"
+
+use_figma_mcp:
+  type: bool
+  default: false
+  help: "Figma MCP を使用する？（Figma 参照・編集）"

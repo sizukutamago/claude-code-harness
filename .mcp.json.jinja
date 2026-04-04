@@ -1,13 +1,13 @@
-{%- if modules -%}
+{%- if use_playwright_mcp or use_figma_mcp -%}
 {
   "mcpServers": {
-    {%- if "playwright-mcp" in modules %}
+    {%- if use_playwright_mcp %}
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
-    }{% if "figma-mcp" in modules %},{% endif %}
+    }{% if use_figma_mcp %},{% endif %}
     {%- endif %}
-    {%- if "figma-mcp" in modules %}
+    {%- if use_figma_mcp %}
     "figma": {
       "type": "http",
       "url": "https://mcp.figma.com/mcp"
