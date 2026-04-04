@@ -1,0 +1,23 @@
+_min_copier_version: "9.0.0"
+
+_exclude:
+  - copier.yml
+  - docs/
+  - eval/
+  - modules/
+  - core/
+  - CLAUDE.md
+  - README.md
+  - "*.md"
+  - "!.claude/**/*.md"
+  - ".git/"
+  - ".github/"
+  - ".harness/"
+
+modules:
+  type: list
+  choices:
+    playwright-mcp: Playwright MCP（ブラウザ操作・画面確認）
+    figma-mcp: Figma MCP（Figma 参照・編集）
+  default: []
+  help: 使用するモジュールを選択（複数可）

@@ -1,0 +1,18 @@
+{%- if modules -%}
+{
+  "mcpServers": {
+    {%- if "playwright-mcp" in modules %}
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }{% if "figma-mcp" in modules %},{% endif %}
+    {%- endif %}
+    {%- if "figma-mcp" in modules %}
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    }
+    {%- endif %}
+  }
+}
+{%- endif -%}

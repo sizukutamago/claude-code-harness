@@ -5,40 +5,41 @@
 ## Project Overview
 
 チームのAI駆動開発における品質・スピードを底上げするための、ワークフロー・スキル・エージェント・eval の統合基盤。
-このリポジトリはテンプレート（ソース）であり、各プロジェクトへの導入時に所定のディレクトリへ展開して使う。
+このリポジトリは Copier テンプレートであり、`copier copy` で導入先プロジェクトの `.claude/` に展開する。
 
 ## Architecture
 
 ```
-core/
-  agents/       — エージェント定義のソース
-    _shared/    — エージェント間の共通リファレンス
-  skills/       — 11個のコアスキル（ワークフロー方法論）
-  rules/        — 常時有効ルール（4個）
-  hooks/        — イベント駆動の自動化
-eval/           — ハーネス効果測定（promptfoo）
-docs/           — 設計書・調査資料・テンプレート
-modules/        — 拡張モジュール（言語固有パターン等、後で設計）
+.claude/                — テンプレート本体（Copier で導入先に展開される）
+  agents/               — エージェント定義（17 core + モジュール条件付き）
+    _shared/            — エージェント間の共通リファレンス
+  skills/               — コアスキル（ワークフロー方法論）
+  rules/                — 常時有効ルール
+  hooks/                — イベント駆動の自動化
+  harness/              — ランタイムデータ（session-feedback.jsonl 等）
+modules/                — モジュールのマニフェスト・ドキュメント
+  playwright-mcp/       — ブラウザ操作モジュール
+  figma-mcp/            — Figma 操作モジュール
+eval/                   — ハーネス効果測定（promptfoo）
+docs/                   — 設計書・調査資料・ガイド
+copier.yml              — Copier テンプレート設定
+.copier-answers.yml.jinja — Copier メタデータテンプレート
+.mcp.json.jinja         — MCP 設定テンプレート（モジュール条件付き）
 ```
 
-## テンプレートと導入先の関係
+## 配布方式
 
-このリポジトリはハーネスのソース（テンプレート）。導入先プロジェクトでは以下のように展開する:
+Copier テンプレートとして配布。詳細は `docs/guides/distribution-workflow.md` を参照。
 
-| ソース（このリポジトリ） | 導入先プロジェクト | 備考 |
-|---|---|---|
-| `core/agents/` | `.claude/agents/` | Claude Code が自動発見、名前で dispatch 可能 |
-| `core/skills/` | `.claude/skills/` | Claude Code がスキルとして認識 |
-| `core/rules/` | `.claude/rules/` | Claude Code が常時適用 |
-| `core/hooks/` | `.claude/hooks/` | Claude Code がイベント駆動で実行 |
-| `eval/` | プロジェクト内の任意の場所 | promptfoo で実行 |
+- **導入**: `copier copy gh:sizukutamago/claude-code-harness <project-dir>`
+- **更新**: `copier update`（3-way merge でプロジェクト固有の変更を保持）
+- **還元**: harness-contribute スキルでテンプレートリポジトリに PR
 
 ## Agent Design Principles
 
 - **tools 制限**: フロントマターの `tools` でホワイトリスト指定（レビュアーは read-only）
 - **コンテキスト**: スキルの委譲指示に従い、dispatch 時のプロンプトに全文埋め込む。エージェントにファイルを読ませるな
 - **共通定義**: `_shared/` に共通リファレンスを置き、各エージェントが実行時に読む
-- **commands/ は廃止**: スキルに一本化（Claude Code 公式仕様に基づく）
 
 ## Skill Design Conventions
 
@@ -50,8 +51,6 @@ modules/        — 拡張モジュール（言語固有パターン等、後で
 - **次のステップ** — このスキルの後に進むスキル
 - **このスキルを使うスキル / 出力を参照するエージェント** — 逆方向の依存
 
-エージェント定義のパスは書かない（委譲指示セクションに既にある）。ワークフロー番号は書かない（「いつ使うか」で既に説明済み）。
-
 ### レビュー
 ファイルを1つ作成・変更したら、人間パートナーにレビューを依頼する。まとめて作って後からレビューしない。
 
@@ -62,6 +61,8 @@ modules/        — 拡張モジュール（言語固有パターン等、後で
 ## Key References
 
 - 設計書: `docs/design/architecture-design.md`
+- 配布ガイド: `docs/guides/distribution-workflow.md`
+- 配布調査: Obsidian `2026-04-04-research-harness-distribution.md`
 - 調査（参考リポジトリ）: `docs/research/`
 - 調査（eval手法）: Obsidian `2026-03-27-research-harness-eval-approaches.md`
 - 調査（アーキテクチャ）: Obsidian `2026-03-27-research-harness-architecture.md`

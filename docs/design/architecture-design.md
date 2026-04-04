@@ -1,8 +1,17 @@
 # ハーネスエンジニアリング基盤 — アーキテクチャ設計書
 
 **Date:** 2026-03-28（初版）、2026-04-04（セッション7反映）
-**Status:** Living Document
+**Status:** Living Document — 下記の注意事項を参照
 **Author:** sizukutamago + Claude
+
+> **⚠️ 2026-04-04 時点の差分**
+> この設計書は初期設計時の `.harness/core/` ベースの構造で書かれている。
+> 現在の実装は以下の点が異なる:
+> - `core/` は廃止。テンプレート本体は `.claude/` に統合
+> - `.harness/` ランタイムデータは `.claude/harness/` に移動
+> - 配布方式は Copier テンプレート方式に変更（`docs/guides/distribution-workflow.md` 参照）
+> - modules/ が実装済み（playwright-mcp, figma-mcp）
+> - 設計書の全面改訂は今後実施予定
 
 ---
 
