@@ -67,7 +67,7 @@ Copier テンプレートとして配布。詳細は `docs/guides/distribution-w
 - 調査（eval手法）: Obsidian `2026-03-27-research-harness-eval-approaches.md`
 - 調査（アーキテクチャ）: Obsidian `2026-03-27-research-harness-architecture.md`
 - Problem Shaping: Obsidian `2026-03-27-shaping-harness-engineering.md`
-- eval 移行メモ: `docs/notes/eval-v2-migration.md`
+- eval 移行メモ: `docs/decisions/0005-eval-v2-migration.md`
 
 ## Workflow (12 Steps)
 

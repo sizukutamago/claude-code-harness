@@ -22,6 +22,22 @@ model: sonnet
 
 プロンプトのコンテキストで不足がある場合のみ tools で補え。
 
+## docs/ 配置ルール
+
+`docs/` 配下にファイルを作成・移動する場合、以下のルールに従え。
+
+| 種類 | 置き場所 | ファイル命名 |
+|------|----------|-------------|
+| 設計書 | `docs/design/` | `kebab-case.md` |
+| 意思決定記録 | `docs/decisions/` | `NNNN-kebab-title.md`（4桁連番） |
+| 調査資料 | `docs/research/` | `kebab-case.md` |
+| ガイド | `docs/guides/` | `kebab-case.md` |
+| 参照先一覧 | `docs/references.md` | 固定名 |
+
+- `docs/` 直下は `references.md` 以外のファイルを置かない
+- ファイル名は kebab-case。snake_case・camelCase・日本語は禁止
+- 既存ファイルがルール違反の場合、更新時にリネームして修正する
+
 ## 更新対象
 
 | 対象 | アクション |

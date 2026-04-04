@@ -525,8 +525,8 @@ tests:
 | 16 | session-verifier | Sonnet | retrospective | セッション検証（成果物からワークフロー遵守確認） |
 | 17 | improvement-proposer | Opus | retrospective | フィードバックから改善提案（最大3件） |
 
-※ debugger は廃止（docs/notes/debugging-skill-decision.md）
-※ explorer は廃止（組み込み Explore で代替。docs/notes/explorer-agent-decision.md）
+※ debugger は廃止（docs/decisions/0001-debugging-skill-decision.md）
+※ explorer は廃止（組み込み Explore で代替。docs/decisions/0002-explorer-agent-decision.md）
 ※ feedback-collector は廃止 → scripts/collect-feedback.mjs に置き換え
 ※ eval-runner は未作成のまま保留
 
@@ -726,7 +726,7 @@ claude -p --output-format stream-json --verbose
 | 9 | cleanup | [10] 整理 | 不要ファイルを残したままコミットするな |
 | 10 | retrospective | [12] 振り返り | 振り返りなしにセッションを終えるな |
 
-※ debugging スキルは廃止（docs/notes/debugging-skill-decision.md）
+※ debugging スキルは廃止（docs/decisions/0001-debugging-skill-decision.md）
 ※ eval スキルは retrospective に再設計
 
 ---
