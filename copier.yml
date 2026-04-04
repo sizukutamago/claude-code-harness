@@ -9,7 +9,7 @@ _exclude:
   - docs/
   - eval/
   - modules/
-  - scripts/
+  - "/scripts/"
   - plans/
   - ".harness/"
   # プロジェクト既存ファイル（上書きしない）
