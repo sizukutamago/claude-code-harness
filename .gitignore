@@ -1,3 +1,6 @@
+# Harness runtime data (reviews, feedback, session logs)
+.claude/harness/
+
 # Eval results (generated, not committed)
 eval/results/
 
