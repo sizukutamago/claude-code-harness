@@ -1,6 +1,6 @@
 # 引き継ぎドキュメント — claude-code-harness
 
-**Date:** 2026-04-03
+**Date:** 2026-04-05
 **前回作業リポジトリ:** このリポジトリ（claude-code-harness）
 
 ---
@@ -30,6 +30,80 @@ Problem Shaping で特定した根本課題:
 ---
 
 ## 2. 直近セッションの成果
+
+### 2.0 42体サブエージェントレビュー + P0-P3対応（2026-04-05）
+
+42体のサブエージェントで10ドメインの徹底レビューを実施。検出した118件の問題からP0-P3の対応を実施。
+
+#### レビュー統計
+- 投入エージェント: 42体（3 Wave 並列実行、約10分）
+- 検出: CVE級 3件, Critical 28件, High 43件, Medium 38件, Low 6件
+- 業界比較評価: 4/5（AI駆動開発フレームワークとして最高水準）
+- レビュー報告書: `docs/reviews/comprehensive-review-2026-04-05.md`
+
+#### P0 対応（2件）
+| 対応 | ファイル |
+|------|---------|
+| coordinator-write-guard の catch を exit(0)→exit(2) に修正 | hooks/scripts/coordinator-write-guard.mjs |
+| rules/README.md に docs-structure, feedback-recording の2件漏れを追加 | rules/README.md |
+| CVE-001/002/003 は実態リスク低のため対応見送り（Claude Code ランタイムが stdin を制御するため偽装困難） | — |
+
+#### P1 対応（5件）
+| 対応 | ファイル |
+|------|---------|
+| commit スキル新規作成（[11] コミットステップの穴埋め） | skills/commit/SKILL.md |
+| CLAUDE.md にタスク規模別ワークフロー（Tiny/Small/Normal/Large）定義 | CLAUDE.md → rules/workflow.md に移動 |
+| secret-scanner hook 追加（PreToolUse でシークレット検出・ブロック） | hooks/scripts/secret-scanner.mjs, hooks/hooks.json |
+| onboarding 2段階化（Phase A: 15分 / Phase B: 30分） | skills/onboarding/SKILL.md |
+| skills/README.md + README.md (root) 新規作成 | skills/README.md, README.md |
+
+#### P2 対応（6件）
+| 対応 | ファイル |
+|------|---------|
+| _shared/ 拡充: status-definition, completion-report-format, context-requirements | agents/_shared/*.md |
+| エージェント命名修正: spec-reviewer→spec-compliance-reviewer, spec-doc-reviewer→design-reviewer | 全参照箇所（10ファイル+） |
+| architecture-design.md 全面改訂（実装との同期） | docs/design/architecture-design.md |
+| retrospective に Integration セクション追加 | skills/retrospective/SKILL.md |
+| rules/README.md にルール間優先順位を追加 | rules/README.md |
+| cleanup-agent から Bash ツールを削除（最小権限） | agents/cleanup-agent.md |
+
+#### P3 対応（3/5件）
+| 対応 | ファイル |
+|------|---------|
+| eval コード共通化（lib/claude-cli.mjs）+ 並列化（lib/concurrency.mjs） | eval/lib/*.mjs, eval/run-eval.mjs, eval/run-ablation.mjs |
+| モジュールテスト追加（Copier テンプレート展開の4パターン検証） | eval/test-modules.mjs |
+| harness-development.md 作成（ハーネス開発者向けガイド） | docs/guides/harness-development.md |
+| 依存バージョン更新 | **未対応**（npm キャッシュ権限問題） |
+
+#### 追加実装: roadmap スキル
+| 対応 | ファイル |
+|------|---------|
+| roadmap スキル新規（大規模プロジェクトのフェーズ分割） | skills/roadmap/SKILL.md |
+| roadmap-planner エージェント新規 | agents/roadmap-planner.md |
+| workflow.md を rules/ に移動（導入先に自動展開） | rules/workflow.md |
+| タスク規模テーブルに Large を追加 | rules/workflow.md |
+
+#### 設計判断
+| 判断 | 根拠 |
+|------|------|
+| CVE-002（agent_id 偽装）は対応見送り | Claude Code ランタイムが stdin を生成するため、ユーザー/エージェントが直接偽装は困難 |
+| ホック署名検証（#26）は削除 | hook ファイルは git 管理されており、改ざんは git diff で検知可能。HMAC 導入は過剰防御 |
+| ルール3本追加（#28）は削除 | error-handling/logging/type-safety は言語固有。テンプレートに含めるのは過剰 |
+| coordinator.md は不要 | workflow.md の Invariants + Hook + スキルの委譲指示で3層カバー済み |
+| roadmap は案B（別スキル新設）を採用 | 責務分離: roadmap=全体設計視点, planning=フェーズ単位の実装視点 |
+
+#### 残タスク（P4）
+| # | タスク | 工数 |
+|---|--------|------|
+| #31 | 依存バージョン更新（`sudo chown -R $(whoami) ~/.npm` 後に npm update） | 30min |
+| #33 | GitHub MCP モジュール追加 | 8h |
+| #34 | バージョニング戦略の定義 | 2h |
+| #35 | カスタムモジュール追加ガイド | 3h |
+| #36 | troubleshooting.md 作成 | 2h |
+| #37 | 言語別ルール拡張 | 6h |
+
+#### 検討中（ADR メモ）
+- `docs/decisions/0007-document-type-skills.md` — ドキュメント種別（ADR, 設計書, 調査資料）ごとのスキル化を検討中
 
 ### 2.1 TDD 縦割り一本通し（2026-03-30 セッション1）
 
