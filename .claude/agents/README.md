@@ -17,14 +17,14 @@
 | エージェント | model | tools | 対応スキル |
 |------------|-------|-------|-----------|
 | requirements-analyst | Opus | Read, Grep, Glob | requirements |
-| brainstormer | Opus | Read, Grep, Glob | brainstorming |
+| brainstormer | Opus | Read, Grep, Glob, AskUserQuestion | brainstorming |
 | design-reviewer | Opus | Read, Grep, Glob | brainstorming |
 | roadmap-planner | Opus | Read, Grep, Glob, AskUserQuestion | roadmap |
-| planner | Opus | Read, Grep, Glob | planning |
+| planner | Opus | Read, Grep, Glob, AskUserQuestion | planning |
 | plan-reviewer | Opus | Read, Grep, Glob | planning |
 | implementer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | tdd |
 | simplifier | Sonnet | Read, Grep, Glob, Write, Edit, Bash | simplify |
-| test-quality-engineer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | test-quality |
+| test-quality-engineer | Sonnet | Read, Grep, Glob, Write, Edit, Bash, AskUserQuestion | test-quality |
 | spec-compliance-reviewer | Opus | Read, Grep, Glob | code-review |
 | quality-reviewer | Opus | Read, Grep, Glob | code-review |
 | security-reviewer | Opus | Read, Grep, Glob | code-review |
@@ -33,14 +33,14 @@
 | test-runner | Sonnet | Read, Grep, Glob, Bash | (横断) |
 | doc-maintainer | Sonnet | Read, Grep, Glob, Write, Edit | (横断) |
 | session-verifier | Sonnet | Read, Grep, Glob, Bash, Write | retrospective |
-| improvement-proposer | Sonnet | Read, Grep, Glob | retrospective |
+| improvement-proposer | Opus | Read, Grep, Glob | retrospective |
 
 ### モジュールエージェント（条件付き展開）
 
 | エージェント | モジュール | model | tools |
 |------------|----------|-------|-------|
-| browser-operator | playwright-mcp | Sonnet | Read, Glob, Grep, Bash, mcp__playwright |
-| figma-operator | figma-mcp | Sonnet | Read, Glob, Grep, Bash, mcp__figma |
+| browser-operator | playwright-mcp | Sonnet | mcp__playwright |
+| figma-operator | figma-mcp | Sonnet | mcp__figma |
 
 ## エージェント定義フォーマット
 

@@ -59,14 +59,15 @@ export function claudeJudge(prompt) {
     const child = spawn("claude", args, { cwd: "/tmp", timeout: 120000 });
 
     let stdout = "";
+    let stderr = "";
     child.stdout.on("data", (d) => { stdout += d; });
-    child.stderr.on("data", () => {});
+    child.stderr.on("data", (d) => { stderr += d; });
 
-    child.on("close", () => {
+    child.on("close", (code) => {
       try {
         resolve(JSON.parse(stdout));
       } catch {
-        reject(new Error(`judge parse failed: ${stdout.slice(0, 300)}`));
+        reject(new Error(`judge parse failed (exit ${code}): ${stdout.slice(0, 300)} stderr: ${stderr.slice(0, 300)}`));
       }
     });
 
@@ -120,9 +121,21 @@ ${trace.final.result_text || "(なし)"}
   try {
     const result = await claudeJudge(prompt);
     const text = result.result || "";
-    const jsonMatch = text.match(/\{[\s\S]*?"pass"\s*:[\s\S]*?\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      const firstBrace = text.indexOf("{");
+      const lastBrace = text.lastIndexOf("}");
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        try {
+          parsed = JSON.parse(text.slice(firstBrace, lastBrace + 1));
+        } catch {
+          // fall through to failure
+        }
+      }
+    }
+    if (parsed) {
       return {
         type: "llm-rubric-trace",
         value: rubric,

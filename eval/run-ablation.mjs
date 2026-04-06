@@ -127,10 +127,12 @@ async function runSingleEval(caseFile, { withRules, concurrency }) {
 function compareResults(withRulesResults, noRulesResults) {
   const flips = [];
 
-  for (let i = 0; i < withRulesResults.length; i++) {
-    const wr = withRulesResults[i];
-    const nr = noRulesResults[i];
-    if (!wr || !nr) continue;
+  const noRulesMap = new Map(noRulesResults.map((r) => [r.case_id, r]));
+
+  for (const wr of withRulesResults) {
+    if (!wr) continue;
+    const nr = noRulesMap.get(wr.case_id);
+    if (!nr) continue;
 
     if (wr.pass !== nr.pass) {
       flips.push({

@@ -31,18 +31,24 @@ const SECRET_PATTERNS = [
   { name: "GitLab Token", pattern: /glpat-[A-Za-z0-9\-_]{20,}/ },
   { name: "Slack Token", pattern: /xox[baprs]-[A-Za-z0-9\-]{10,}/ },
   { name: "Stripe Key", pattern: /sk_live_[A-Za-z0-9]{20,}/ },
+  { name: "Anthropic Key", pattern: /sk-ant-api\d{2}-[A-Za-z0-9\-_]{80,}/ },
+  { name: "OpenAI Key", pattern: /sk-(?:proj-)?[A-Za-z0-9]{20,}/ },
+  { name: "Google Service Account", pattern: /"type"\s*:\s*"service_account"/ },
+  { name: "npm Token", pattern: /npm_[A-Za-z0-9]{36,}/ },
+  { name: "PyPI Token", pattern: /pypi-[A-Za-z0-9\-_]{16,}/ },
+  { name: "DB Connection String", pattern: /(?:postgres|mysql|mongodb(?:\+srv)?):\/\/[^:]+:[^@]+@/ },
   { name: "Private Key", pattern: /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/ },
   { name: "Generic Secret Assignment", pattern: /(?:password|passwd|secret|token|api_key|apikey|api_secret)\s*[:=]\s*["'][^"']{8,}["']/i },
 ];
 
 // スキャン対象外のファイルパターン
+// 注意: .md と .yml は意図的にスキャン対象に含める（設定ファイルにシークレットが書かれるリスク）
 const IGNORE_PATHS = [
   /\.test\.[jt]sx?$/,          // テストファイル
   /\/__tests__\//,              // テストディレクトリ
   /\/fixtures?\//,              // フィクスチャ
   /\.example$/,                 // .env.example 等
-  /\.md$/,                      // ドキュメント
-  /\.ya?ml$/,                   // 設定ファイル（eval cases 等）
+  /\/eval\/cases\//,            // eval ケースファイル（シークレットパターンの記述を含む）
 ];
 
 try {
@@ -82,7 +88,7 @@ try {
 
   process.exit(0);
 } catch (err) {
-  // スキャナーのエラーでユーザーの作業をブロックしない
-  console.error(`[secret-scanner] ${err.message}`);
-  process.exit(0);
+  // セキュリティガードは fail-closed: 検証できない場合はブロックする
+  console.error(`[secret-scanner] スキャン失敗（安全側に倒してブロック）: ${err.message}`);
+  process.exit(2);
 }

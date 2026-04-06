@@ -9,12 +9,18 @@
  * - サブエージェントからの Edit/Write → 許可
  * - coordinator からの Edit/Write → ホワイトリスト一致なら許可、それ以外はブロック
  *
+ * 設計上の位置づけ:
+ * - これは workflow guardrail であり、security boundary ではない（ADR-0008）
+ * - agent_id / agent_type はフレームワーク注入フィールド（LLM 操作不可）
+ * - Bash 経由の書き込み（echo > file, sed -i 等）はガード対象外
+ *   → Bash 書き込みの制御は CLAUDE.md ルールとスキルの tools 制限に委ねる
+ *
  * 期待される stdin JSON:
  * {
  *   "tool_name": "Edit" | "Write",
  *   "tool_input": { "file_path": "/absolute/path/to/file" },
- *   "agent_id": "subagent-id (optional)",
- *   "agent_type": "agent-name (optional)"
+ *   "agent_id": "subagent-id (framework-injected, optional)",
+ *   "agent_type": "agent-name (framework-injected, optional)"
  * }
  */
 

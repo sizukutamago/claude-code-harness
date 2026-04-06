@@ -230,7 +230,7 @@
 │   ├── docs-structure.md                  #   ドキュメント配置・命名規則
 │   └── feedback-recording.md              #   ユーザ指摘の即時記録
 │
-├── agents/                                # 専門サブエージェント（17個 core + モジュール条件付き）
+├── agents/                                # 専門サブエージェント（18個 core + モジュール条件付き）
 │   ├── _shared/
 │   │   ├── completion-report-format.md    #   完了報告の共通フォーマット
 │   │   ├── review-report-format.md        #   レビュー共通報告フォーマット
@@ -252,7 +252,8 @@
 │   ├── doc-maintainer.md                  #   ドキュメント管理（Sonnet）
 │   ├── test-runner.md                     #   テスト実行（Sonnet）
 │   ├── session-verifier.md                #   セッション検証（Sonnet、retrospective用）
-│   └── improvement-proposer.md            #   改善提案（Sonnet、retrospective用）
+│   ├── improvement-proposer.md            #   改善提案（Opus、retrospective用）
+│   └── roadmap-planner.md                 #   大規模タスクのフェーズ分割（Opus）
 │
 ├── hooks/
 │   ├── hooks.json                         # イベント駆動の自動化
@@ -567,12 +568,13 @@ tests:
 | 14 | doc-maintainer | Sonnet | (横断) | ADR作成、spec更新、README更新 |
 | 15 | test-runner | Sonnet | (横断) | テスト実行、冗長出力を要約して返す |
 | 16 | session-verifier | Sonnet | retrospective | セッション検証（成果物からワークフロー遵守確認） |
-| 17 | improvement-proposer | Sonnet | retrospective | フィードバックから改善提案（最大3件） |
+| 17 | improvement-proposer | Opus | retrospective | フィードバックから改善提案（最大3件） |
+| 18 | roadmap-planner | Opus | roadmap | 大規模タスクのフェーズ分割・マイルストーン定義 |
 
 ※ debugger は廃止（docs/decisions/0001-debugging-skill-decision.md）
 ※ explorer は廃止（組み込み Explore で代替。docs/decisions/0002-explorer-agent-decision.md）
 ※ feedback-collector は廃止 → scripts/collect-feedback.mjs に置き換え
-※ eval-runner は未作成のまま保留
+※ eval-runner は廃止 — step [12] は session-verifier + improvement-proposer が担当
 
 ### 5.4 コンテキストキュレーション原則
 
@@ -619,7 +621,7 @@ BLOCKED
 | [9] 完了検証 | verifier | ✅ |
 | [10] 整理 | cleanup-agent | ✅ |
 | [11] コミット | コーディネーター | ❌ |
-| [12] 振り返り | eval-runner | ✅ |
+| [12] 振り返り | session-verifier, improvement-proposer | ✅ |
 
 ### 5.6 レビューループ上限
 

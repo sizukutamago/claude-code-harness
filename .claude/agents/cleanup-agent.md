@@ -1,7 +1,7 @@
 ---
 name: cleanup-agent
 description: lint/formatterでは対応できない不要物（一時ファイル・対応済みTODO・コメントアウト）を除去する
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
 ---
 

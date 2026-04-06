@@ -21,7 +21,11 @@ export async function mapWithConcurrency(items, fn, limit) {
   async function worker() {
     while (nextIndex < items.length) {
       const i = nextIndex++;
-      results[i] = await fn(items[i], i);
+      try {
+        results[i] = await fn(items[i], i);
+      } catch (err) {
+        results[i] = { error: err.message, index: i };
+      }
     }
   }
 
