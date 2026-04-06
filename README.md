@@ -21,18 +21,19 @@ copier update
 
 | 対象 | ドキュメント |
 |------|------------|
+| はじめて | [Getting Started](docs/guides/getting-started.md) |
 | 導入者 | [配布ガイド](docs/guides/distribution-workflow.md) |
 | ユーザー | [CLAUDE.md](CLAUDE.md)（ワークフロー・Invariants・Policies） |
 | 設計 | [アーキテクチャ設計](docs/design/architecture-design.md) |
 | 意思決定 | [Decision Records](docs/decisions/) |
-| 調査 | [参考リポジトリ調査](docs/research/) |
 | 効果測定 | [eval README](eval/README.md) |
+| トラブル | [トラブルシューティング](docs/guides/troubleshooting.md) |
 
 ## 構成
 
 ```
 .claude/
-  agents/    — エージェント定義（17 core + モジュール条件付き）
+  agents/    — エージェント定義（18 core + モジュール条件付き）
   skills/    — スキル（ワークフロー各ステップの手順書）
   rules/     — 常時有効ルール（コーディング・テスト・セキュリティ・Git）
   hooks/     — イベント駆動の自動化

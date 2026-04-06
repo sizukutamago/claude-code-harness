@@ -62,11 +62,9 @@ Copier テンプレートとして配布。詳細は `docs/guides/distribution-w
 
 - 設計書: `docs/design/architecture-design.md`
 - 配布ガイド: `docs/guides/distribution-workflow.md`
-- 配布調査: Obsidian `2026-04-04-research-harness-distribution.md`
+- Getting Started: `docs/guides/getting-started.md`
 - 調査（参考リポジトリ）: `docs/research/`
-- 調査（eval手法）: Obsidian `2026-03-27-research-harness-eval-approaches.md`
-- 調査（アーキテクチャ）: Obsidian `2026-03-27-research-harness-architecture.md`
-- Problem Shaping: Obsidian `2026-03-27-shaping-harness-engineering.md`
+- 意思決定記録: `docs/decisions/`
 - eval 移行メモ: `docs/decisions/0005-eval-v2-migration.md`
 
 ## Workflow (12 Steps)
