@@ -51,7 +51,7 @@ digraph brainstorming {
     evaluate [label="選択肢の評価\nトレードオフ分析", shape=box, style=filled, fillcolor="#ccccff"];
     decide [label="設計決定\n人間パートナーと合意", shape=box, style=filled, fillcolor="#ccffcc"];
     document [label="設計ドキュメント\n作成", shape=box, style=filled, fillcolor="#ccccff"];
-    review [label="設計レビュー\nspec-doc-reviewer", shape=box, style=filled, fillcolor="#ffffcc"];
+    review [label="設計レビュー\ndesign-reviewer", shape=box, style=filled, fillcolor="#ffffcc"];
     approve [label="人間パートナーの\n承認", shape=diamond];
     done [label="設計確定\n→ planning へ", shape=ellipse];
 
@@ -108,7 +108,7 @@ brainstormer の報告をもとに、選択肢を評価する。
 
 ### 5. 設計レビュー
 
-`spec-doc-reviewer` に設計ドキュメントと requirements.md を渡し、以下を検証する:
+`design-reviewer` に設計ドキュメントと requirements.md を渡し、以下を検証する:
 
 - 全 FR が設計でカバーされているか
 - 設計がスコープ（やること/やらないこと）に沿っているか
@@ -276,7 +276,7 @@ last_updated: 2026-03-31
 | どの選択肢も一長一短で決められない | 評価基準に優先順位をつける。要件適合 > シンプルさ > テスト容易性 |
 | 既存コードのパターンと合わない | 既存パターンを踏襲するか、移行計画を含めるか人間パートナーに確認 |
 | 設計が大きくなりすぎる | タスクが大きすぎる。requirements に戻って分割を検討 |
-| spec-doc-reviewer が FR の未カバーを指摘する | 設計を修正して FR をカバーする。FR 自体が不要なら requirements に戻る |
+| design-reviewer が FR の未カバーを指摘する | 設計を修正して FR をカバーする。FR 自体が不要なら requirements に戻る |
 
 ## 委譲指示
 
@@ -298,10 +298,10 @@ last_updated: 2026-03-31
    - 合意した設計を design.md テンプレートに従って構造化する
    - `requirements/REQ-*/design.md` に出力する
 
-4. **`spec-doc-reviewer` エージェントをディスパッチして設計をレビューする**
+4. **`design-reviewer` エージェントをディスパッチして設計をレビューする**
    - プロンプトに REQ パス + design.md 全文 + 対応する requirements.md 全文を含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
-   - `spec-doc-reviewer` は設計の要件カバレッジと制約整合性を検証する
+   - `design-reviewer` は設計の要件カバレッジと制約整合性を検証する
 
 5. **レビュー結果に対応する**
    - MUST 指摘あり → 設計を修正して再レビュー（最大2回）
@@ -323,4 +323,4 @@ last_updated: 2026-03-31
 **このスキルの出力を参照するエージェント:**
 - **planner** — 設計を元にタスク分解する
 - **implementer** — インターフェース設計を実装の基準にする
-- **spec-reviewer** — 設計判断と実装の整合を確認する
+- **spec-compliance-reviewer** — 設計判断と実装の整合を確認する

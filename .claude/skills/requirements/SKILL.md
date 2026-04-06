@@ -127,7 +127,7 @@ requirements/REQ-001-user-register/
 
 | ファイル | 中身 | 読む人 |
 |---------|------|--------|
-| `requirements.md` | 承認済みの事実（FR, AC, NFR, スコープ） | spec-reviewer, implementer, verifier |
+| `requirements.md` | 承認済みの事実（FR, AC, NFR, スコープ） | spec-compliance-reviewer, implementer, verifier |
 | `context.md` | 背景、ヒアリング記録、前提・仮説 | 人間（振り返り・トレーサビリティ） |
 | `decisions.md` | スコープ外判断、代替案、再検討条件 | 人間（判断の追跡）。除外判断があるときのみ |
 
@@ -256,12 +256,12 @@ Then [期待結果]
 
 | セクション | 参照する下流 | 理由 |
 |-----------|------------|------|
-| **FR-*（WHEN/IF記法）** | spec-reviewer | 曖昧さのない照合基準 |
+| **FR-*（WHEN/IF記法）** | spec-compliance-reviewer | 曖昧さのない照合基準 |
 | **AC-*（Given/When/Then）** | implementer, verifier | TDDテスト構造に直接対応 |
-| **AC の Covers: FR-x** | spec-reviewer, verifier | FR と AC の機械的な追跡 |
-| **スコープ（やらないこと+理由）** | spec-reviewer | スコープ逸脱の検出 + 判断の追跡 |
+| **AC の Covers: FR-x** | spec-compliance-reviewer, verifier | FR と AC の機械的な追跡 |
+| **スコープ（やらないこと+理由）** | spec-compliance-reviewer | スコープ逸脱の検出 + 判断の追跡 |
 | **前提・制約** | implementer | 仕様が立つ土台の明示 |
-| **ユーザー価値** | spec-reviewer | 「誰の何の価値か」の検証 |
+| **ユーザー価値** | spec-compliance-reviewer | 「誰の何の価値か」の検証 |
 | **ヒアリング記録（context.md）** | 人間 | 判断経緯のトレーサビリティ |
 | **Scope Decisions（decisions.md）** | 人間 | 除外理由と再検討条件の追跡 |
 
@@ -442,6 +442,6 @@ Then パスワードが平文ではなくハッシュ化されて保存されて
 - **tdd** — すぐ実装できる場合
 
 **このスキルの出力を参照するエージェント:**
-- **spec-reviewer** — FR-*/AC-*/スコープで実装を照合
+- **spec-compliance-reviewer** — FR-*/AC-*/スコープで実装を照合
 - **verifier** — AC-* で完了検証
 - **implementer** — 入力/出力/異常系を実装の基準にする

@@ -34,7 +34,7 @@ model: opus
 
 ## レビュー観点外（やらないこと）
 
-- 仕様との照合（機能の過不足）→ spec-reviewer の担当
+- 仕様との照合（機能の過不足）→ spec-compliance-reviewer の担当
 - セキュリティの検証（脆弱性、認証）→ security-reviewer の担当
 - コードスタイルの指摘（フォーマット、インデント）→ lint の担当
 

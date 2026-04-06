@@ -1,5 +1,5 @@
 ---
-name: spec-doc-reviewer
+name: design-reviewer
 description: 設計ドキュメントが要件を満たしているかを検証する
 tools: Read, Grep, Glob
 model: opus

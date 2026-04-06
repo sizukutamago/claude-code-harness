@@ -51,7 +51,7 @@ digraph code_review {
     subgraph cluster_parallel {
         label="並列レビュー";
         style=dashed;
-        spec [label="仕様準拠レビュー\n(spec-reviewer)", shape=box, style=filled, fillcolor="#cce5ff"];
+        spec [label="仕様準拠レビュー\n(spec-compliance-reviewer)", shape=box, style=filled, fillcolor="#cce5ff"];
         quality [label="コード品質レビュー\n(quality-reviewer)", shape=box, style=filled, fillcolor="#ccffcc"];
         security [label="セキュリティレビュー\n(security-reviewer)", shape=box, style=filled, fillcolor="#ffcccc"];
     }
@@ -90,7 +90,7 @@ digraph code_review {
 
 3つのレビュアーは独立した観点を持つ。同じコードを読むだけ（read-only）なので並列実行する。
 
-#### 仕様準拠レビュー（spec-reviewer）
+#### 仕様準拠レビュー（spec-compliance-reviewer）
 
 実装が要件・仕様を満たしているかを検証する。
 
@@ -223,7 +223,7 @@ SHOULD: レスポンスに内部エラーの詳細が露出（スタックトレ
 
 1. **3レビュアーを並列ディスパッチする**
    - 以下のエージェントを名前指定で同時にディスパッチする:
-     - `spec-reviewer`: プロンプトに REQ パス + 対応する REQ の requirements.md 全文 + コード差分 + 関連テストを含める
+     - `spec-compliance-reviewer`: プロンプトに REQ パス + 対応する REQ の requirements.md 全文 + コード差分 + 関連テストを含める
      - `quality-reviewer`: プロンプトにコード差分 + 関連ファイルを含める
      - `security-reviewer`: プロンプトにコード差分 + 関連ファイルを含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな

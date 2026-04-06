@@ -18,13 +18,13 @@
 |------------|-------|-------|-----------|
 | requirements-analyst | Opus | Read, Grep, Glob | requirements |
 | brainstormer | Opus | Read, Grep, Glob | brainstorming |
-| spec-doc-reviewer | Opus | Read, Grep, Glob | brainstorming |
+| design-reviewer | Opus | Read, Grep, Glob | brainstorming |
 | planner | Opus | Read, Grep, Glob | planning |
 | plan-reviewer | Opus | Read, Grep, Glob | planning |
 | implementer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | tdd |
 | simplifier | Sonnet | Read, Grep, Glob, Write, Edit, Bash | simplify |
 | test-quality-engineer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | test-quality |
-| spec-reviewer | Opus | Read, Grep, Glob | code-review |
+| spec-compliance-reviewer | Opus | Read, Grep, Glob | code-review |
 | quality-reviewer | Opus | Read, Grep, Glob | code-review |
 | security-reviewer | Opus | Read, Grep, Glob | code-review |
 | verifier | Sonnet | Read, Grep, Glob, Bash | verification |

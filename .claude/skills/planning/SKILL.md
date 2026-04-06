@@ -288,4 +288,4 @@ Task-1 → Task-2 → Task-3
 
 **このスキルの出力を参照するエージェント:**
 - **implementer** — タスクの「やること」「完了条件」を実装の基準にする
-- **spec-reviewer** — タスクと FR の対応を確認する
+- **spec-compliance-reviewer** — タスクと FR の対応を確認する

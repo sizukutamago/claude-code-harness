@@ -1,5 +1,5 @@
 ---
-name: spec-reviewer
+name: spec-compliance-reviewer
 description: 実装が要件・仕様を満たしているかを独立検証する
 tools: Read, Grep, Glob
 model: opus

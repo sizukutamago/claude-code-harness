@@ -50,5 +50,5 @@ try {
   process.exit(2);
 } catch (err) {
   console.error(`[coordinator-write-guard] ${err.message}`);
-  process.exit(0);
+  process.exit(2);
 }

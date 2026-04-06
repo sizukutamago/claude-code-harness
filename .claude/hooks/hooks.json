@@ -8,6 +8,11 @@
             "type": "command",
             "command": "node .claude/hooks/scripts/coordinator-write-guard.mjs",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/scripts/secret-scanner.mjs",
+            "timeout": 5
           }
         ]
       }
