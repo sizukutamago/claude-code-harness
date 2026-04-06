@@ -19,6 +19,7 @@
 | requirements-analyst | Opus | Read, Grep, Glob | requirements |
 | brainstormer | Opus | Read, Grep, Glob | brainstorming |
 | design-reviewer | Opus | Read, Grep, Glob | brainstorming |
+| roadmap-planner | Opus | Read, Grep, Glob, AskUserQuestion | roadmap |
 | planner | Opus | Read, Grep, Glob | planning |
 | plan-reviewer | Opus | Read, Grep, Glob | planning |
 | implementer | Sonnet | Read, Grep, Glob, Write, Edit, Bash | tdd |

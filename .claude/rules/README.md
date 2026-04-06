@@ -10,6 +10,7 @@
 | git-workflow.md | Git運用ルール |
 | docs-structure.md | ドキュメント配置・命名規則 |
 | feedback-recording.md | フィードバック記録ルール |
+| workflow.md | ワークフロー定義・タスク規模別ルール・Invariants・Policies |
 
 ## ルール間の優先順位
 

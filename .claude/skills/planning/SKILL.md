@@ -282,6 +282,7 @@ Task-1 → Task-2 → Task-3
 **前提スキル:**
 - **brainstorming** — 承認済みの design.md が存在すること
 - **requirements** — 承認済みの requirements.md が存在すること
+- **roadmap**（大規模時のみ）— 複数フェーズの場合、roadmap.md で各フェーズの scope が定義済みであること
 
 **次のステップ:**
 - **tdd** — タスク順に TDD サイクルで実装する
