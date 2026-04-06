@@ -48,6 +48,32 @@ docs/
 2. **該当カテゴリがない場合** — 人間に確認する。既存カテゴリに寄せるか、新設するか判断を仰ぐ
 3. **新規サブディレクトリを追加する場合** — 人間の承認を得たうえで、このルールファイル（`docs-structure.md`）の配置ルール表とディレクトリ構成を更新する
 
+## ADR テンプレート
+
+`docs/decisions/` に新規 ADR を作成する際は以下のフォーマットに従う:
+
+```markdown
+# NNNN: タイトル
+
+**Status:** 検討中 | Approved | Rejected
+**Date:** YYYY-MM-DD
+
+## 背景
+[なぜこの判断が必要になったか]
+
+## 選択肢
+[検討した代替案とトレードオフ]
+
+## 判断
+[何を選んだか + 理由]
+
+## 影響
+[この判断によって変わること]
+```
+
+- Status は `検討中` → `Approved` or `Rejected` に遷移する
+- brainstorming スキルの design.md 内「設計判断」テーブルとは別物。ADR はワークフロー外の判断（廃止、アーキ変更等）を記録する
+
 ## 禁止事項
 
 - snake_case や camelCase のファイル名（`my_document.md`, `myDocument.md`）
