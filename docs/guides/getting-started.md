@@ -101,8 +101,14 @@ git commit -m 'feat: claude-code-harness 導入'
 ハーネスの新バージョンが出たら:
 
 ```bash
+# 通常（モジュール選択を再確認）
 copier update --trust
+
+# モジュール選択をスキップ（前回の回答を再利用）
+copier update --trust --defaults
 ```
+
+`--defaults` は前回の `.copier-answers.yml` の回答をそのまま使う。新しい質問が追加された場合はデフォルト値が適用される。
 
 3-way merge でプロジェクト固有の変更を保持しつつ更新される。
 コンフリクトが発生した場合は `docs/guides/troubleshooting.md` を参照。
