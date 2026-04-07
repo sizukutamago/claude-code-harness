@@ -1,0 +1,61 @@
+name: Auto Tag on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # PR ラベルで判定（デフォルト: patch）
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+
+          if echo "$LABELS" | grep -q '"bump:major"'; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$LABELS" | grep -q '"bump:minor"'; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create new tag
+        run: |
+          latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          major=$(echo "$latest" | sed 's/v//' | cut -d. -f1)
+          minor=$(echo "$latest" | sed 's/v//' | cut -d. -f2)
+          patch=$(echo "$latest" | sed 's/v//' | cut -d. -f3)
+
+          case "${{ steps.bump.outputs.type }}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new="v${major}.${minor}.${patch}"
+          echo "Creating tag: $new (bump: ${{ steps.bump.outputs.type }})"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$new" -m "Release $new (auto-tagged from PR #${{ github.event.pull_request.number }})"
+          git push origin "$new"
