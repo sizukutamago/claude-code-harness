@@ -50,8 +50,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/sizukutamago/claude-code-har
 
 ```bash
 cd <your-project>
-copier copy gh:sizukutamago/claude-code-harness .
+copier copy --trust gh:sizukutamago/claude-code-harness .
 ```
+
+`--trust` はテンプレートの後処理タスク（空ファイル削除）の実行に必要。
 
 対話で聞かれること:
 - `Playwright MCP を使用する？` — ブラウザ操作が必要なら `true`
@@ -99,7 +101,7 @@ git commit -m 'feat: claude-code-harness 導入'
 ハーネスの新バージョンが出たら:
 
 ```bash
-copier update
+copier update --trust
 ```
 
 3-way merge でプロジェクト固有の変更を保持しつつ更新される。

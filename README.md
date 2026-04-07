@@ -10,10 +10,10 @@ AI駆動開発のための統合ハーネス（Copier テンプレート）。
 
 ```bash
 # 導入
-copier copy gh:sizukutamago/claude-code-harness <project-dir>
+copier copy --trust gh:sizukutamago/claude-code-harness <project-dir>
 
 # 更新
-copier update
+copier update --trust
 
 # 使い始める
 # プロジェクトで Claude Code を開き、/onboarding を実行

@@ -31,8 +31,8 @@ copier.yml              — Copier テンプレート設定
 
 Copier テンプレートとして配布。詳細は `docs/guides/distribution-workflow.md` を参照。
 
-- **導入**: `copier copy gh:sizukutamago/claude-code-harness <project-dir>`
-- **更新**: `copier update`（3-way merge でプロジェクト固有の変更を保持）
+- **導入**: `copier copy --trust gh:sizukutamago/claude-code-harness <project-dir>`
+- **更新**: `copier update --trust`（3-way merge でプロジェクト固有の変更を保持）
 - **還元**: harness-contribute スキルでテンプレートリポジトリに PR
 
 ## Agent Design Principles

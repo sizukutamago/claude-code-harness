@@ -129,4 +129,4 @@ fi
 echo "  2. git commit -m 'feat: claude-code-harness 導入'"
 echo "  3. Claude Code を開いて /onboarding を実行"
 echo ""
-echo "ハーネス更新時: copier update"
+echo "ハーネス更新時: copier update --trust"

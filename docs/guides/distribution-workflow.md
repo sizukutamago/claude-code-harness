@@ -14,11 +14,11 @@
 | パターン | 誰が実行 | Copier 使用 | チームメンバーの作業 |
 |---|---|---|---|
 | 初回導入 | メンテナー | `copier copy` | `git pull` |
-| core 更新 | メンテナー | `copier update` | `git pull` |
-| 新モジュール追加 | メンテナー | `copier update` | `git pull` |
+| core 更新 | メンテナー | `copier update --trust` | `git pull` |
+| 新モジュール追加 | メンテナー | `copier update --trust` | `git pull` |
 | プロジェクト固有カスタマイズ | 誰でも | 不要 | `git pull` |
 | ハーネスへの還元 | メンテナー | harness-contribute スキル | なし |
-| コンフリクト解決 | メンテナー | `copier update` | `git pull` |
+| コンフリクト解決 | メンテナー | `copier update --trust` | `git pull` |
 
 **チームメンバーがやることは常に `git pull` だけ。Copier に触るのはメンテナーのみ。**
 
@@ -29,8 +29,8 @@
 ```bash
 # メンテナー
 cd /path/to/project
-copier copy gh:sizukutamago/claude-code-harness .
-# → 質問に答える（プロジェクト名、使用モジュールの選択）
+copier copy --trust gh:sizukutamago/claude-code-harness .
+# → 質問に答える（使用モジュールの選択）
 
 git add .claude/ .mcp.json .copier-answers.yml
 git commit -m "feat: ハーネス導入"
@@ -64,7 +64,7 @@ project/
 ```bash
 # メンテナー
 cd /path/to/project
-copier update
+copier update --trust
 # → 3-way merge でプロジェクト固有の変更は保持
 
 # コンフリクトがあれば解決
@@ -85,7 +85,7 @@ git pull
 ```bash
 # メンテナー
 cd /path/to/project
-copier update
+copier update --trust
 # → modules の選択肢に新モジュールが表示される
 #   modules: (前回: [playwright-mcp, figma-mcp])
 #     [x] playwright-mcp
@@ -120,7 +120,7 @@ git push
 git pull
 ```
 
-次回の `copier update` でもこのファイルは保持される（3-way merge）。
+次回の `copier update --trust` でもこのファイルは保持される（3-way merge）。
 
 ## パターン5: プロジェクトの改善をハーネスに還元
 
@@ -138,7 +138,7 @@ vim .claude/rules/testing.md
 
 # 導入先プロジェクトでテスト（マージ前に検証）
 cd /path/to/project
-copier update --vcs-ref improve/better-testing-rule
+copier update --trust --vcs-ref improve/better-testing-rule
 
 # 問題なければ PR
 cd /path/to/claude-code-harness
@@ -154,7 +154,7 @@ Claude Code:
   2. プロジェクト側の変更内容を読む
   3. ハーネスリポジトリで feature branch 作成
   4. .claude/ 内の対応ファイルに変更を適用
-  5. copier update --vcs-ref でテスト適用
+  5. copier update --trust --vcs-ref でテスト適用
   6. PR を作成
 メンテナー: PR をレビュー・マージ
 ```
@@ -168,7 +168,7 @@ Claude Code:
 ```bash
 # メンテナー
 cd /path/to/project
-copier update
+copier update --trust
 # → inline conflict markers が出る
 #   <<<<<<< BEFORE (project)
 #   プロジェクト側の変更
@@ -192,4 +192,4 @@ git pull
 - **Copier のインストール**: メンテナーのみ必要。`pip install copier` または `pipx install copier`
 - **Node.js 18+**: Playwright MCP モジュール使用時に必要
 - **Git タグ**: ハーネスリポジトリはリリースごとに Git タグ（v1.0.0 等）を付ける。Copier はタグベースでバージョン追跡する
-- **`.copier-answers.yml`**: 必ず git 管理する。これがないと `copier update` でバージョン追跡できない
+- **`.copier-answers.yml`**: 必ず git 管理する。これがないと `copier update --trust` でバージョン追跡できない

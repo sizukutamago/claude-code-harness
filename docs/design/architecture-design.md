@@ -740,7 +740,7 @@ claude -p --output-format stream-json --verbose
 ### チームメンバーが新規プロジェクトで使い始める場合:
 
 ```
-1. copier copy gh:sizukutamago/claude-code-harness <project-dir>
+1. copier copy --trust gh:sizukutamago/claude-code-harness <project-dir>
 2. Copier の質問に回答（Playwright MCP / Figma MCP の使用有無等）
 3. .claude/ がプロジェクトに展開される
 4. CLAUDE.md をプロジェクト情報に合わせて編集
@@ -750,7 +750,7 @@ claude -p --output-format stream-json --verbose
 ### 既存プロジェクトに導入する場合:
 
 ```
-1. copier copy gh:sizukutamago/claude-code-harness .
+1. copier copy --trust gh:sizukutamago/claude-code-harness .
 2. 既存の .claude/ がある場合は Copier が 3-way merge で統合
 3. CLAUDE.md を既存プロジェクトに合わせて編集
 4. 開発開始
@@ -759,7 +759,7 @@ claude -p --output-format stream-json --verbose
 ### ハーネスを更新する場合:
 
 ```
-1. copier update（3-way merge でプロジェクト固有の変更を保持）
+1. copier update --trust（3-way merge でプロジェクト固有の変更を保持）
 ```
 
 ---

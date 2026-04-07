@@ -12,7 +12,7 @@
 |------|----------------|------|
 | Copier が古い | `_min_copier_version` エラー | `pipx upgrade copier` で 9.0.0+ にアップグレード |
 | ネットワーク | `git clone` 失敗 | GitHub へのアクセスを確認。プロキシ環境なら `git config --global http.proxy` を設定 |
-| 既存ファイルの競合 | `.copier-answers.yml already exists` | 初回導入なら削除して再実行。更新なら `copier update` を使用 |
+| 既存ファイルの競合 | `.copier-answers.yml already exists` | 初回導入なら削除して再実行。更新なら `copier update --trust` を使用 |
 | Git リポジトリでない | `not a git repository` | `git init` してから再実行 |
 
 ### .claude/ が展開されない
@@ -61,7 +61,7 @@ head -5 .claude/skills/tdd/SKILL.md
 
 **よくある原因:**
 - Node.js のバージョンが古い → nvm 等でアップグレード
-- `.mcp.json` がない → `copier update` で再生成（Playwright MCP を `true` に）
+- `.mcp.json` がない → `copier update --trust` で再生成（Playwright MCP を `true` に）
 - バイナリのインストール失敗 → `npx playwright install` を手動実行
 
 ### Figma MCP の OAuth 認証が通らない
