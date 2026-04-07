@@ -14,51 +14,19 @@
  * 4. レポートを eval/results/ablation/ に保存
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, mkdtempSync } from "node:fs";
-import { resolve, basename, join } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { resolve, basename } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { parseStreamJson, buildTrace } from "./lib/trace.mjs";
-import { runAssertions as runDeterministicAssertions } from "./lib/assertions.mjs";
+import { runAssertionPipeline } from "./lib/assertions.mjs";
 import { claudeRun, checkLlmRubricTrace } from "./lib/claude-cli.mjs";
 import { mapWithConcurrency } from "./lib/concurrency.mjs";
+import { prepareWorkdir, cleanupWorkdir } from "./lib/workdir.mjs";
+import { parseCliArgs } from "./lib/cli-args.mjs";
 
-const ROOT = resolve(import.meta.dirname, "..");
 const EVAL_DIR = resolve(import.meta.dirname);
-const FIXTURES_DIR = resolve(EVAL_DIR, "fixtures");
 
 const DEFAULT_CONCURRENCY = 3;
-
-// --- Fixture ---
-
-function prepareWorkdir(fixtureName, { withRules = true } = {}) {
-  const workdirsRoot = resolve(EVAL_DIR, "workdirs");
-  mkdirSync(workdirsRoot, { recursive: true });
-  const workdir = mkdtempSync(join(workdirsRoot, "abl-"));
-
-  // base fixture
-  const baseDir = resolve(FIXTURES_DIR, "base");
-  try { cpSync(baseDir, workdir, { recursive: true }); } catch {}
-
-  // ハーネスなしモード: CLAUDE.md を空にし、.claude/rules/ を削除
-  if (!withRules) {
-    const rulesDir = join(workdir, ".claude", "rules");
-    try { rmSync(rulesDir, { recursive: true, force: true }); } catch {}
-    const claudeMd = join(workdir, "CLAUDE.md");
-    try { writeFileSync(claudeMd, "# Project\n"); } catch {}
-  }
-
-  // ケース固有 fixture
-  if (fixtureName) {
-    const fixtureDir = resolve(FIXTURES_DIR, fixtureName);
-    try { cpSync(fixtureDir, workdir, { recursive: true }); } catch {}
-  }
-
-  return workdir;
-}
-
-function cleanupWorkdir(workdir) {
-  try { rmSync(workdir, { recursive: true, force: true }); } catch {}
-}
 
 // --- 単一テストの実行 ---
 
@@ -68,7 +36,7 @@ async function runSingleAblationTest(test, { caseFile, caseFixture, defaultMaxTu
   const fixture = test.fixture || caseFixture;
   const label = withRules ? "WITH_RULES" : "NO_RULES";
 
-  const workdir = prepareWorkdir(fixture, { withRules });
+  const workdir = prepareWorkdir(fixture, { withRules, prefix: "abl-" });
 
   let ndjson;
   try {
@@ -82,14 +50,7 @@ async function runSingleAblationTest(test, { caseFile, caseFixture, defaultMaxTu
   const rawMessages = parseStreamJson(ndjson);
   const trace = buildTrace({ rawMessages, caseId, caseFile, testDescription: test.description, task: test.vars.task });
 
-  const assertions = test.assert || [];
-  const deterministicAssertions = assertions.filter((a) => a.type !== "llm-rubric-trace");
-  const llmAssertions = assertions.filter((a) => a.type === "llm-rubric-trace");
-
-  const assertionResults = runDeterministicAssertions(trace, deterministicAssertions);
-  for (const a of llmAssertions) {
-    assertionResults.push(await checkLlmRubricTrace(trace, a.value));
-  }
+  const assertionResults = await runAssertionPipeline(trace, test.assert || [], checkLlmRubricTrace);
 
   const allPass = assertionResults.every((r) => r.pass === true);
   console.log(`  [${label}] ${test.description} ... ${allPass ? "PASS" : "FAIL"}`);
@@ -221,17 +182,8 @@ async function runAblation(caseFiles, { concurrency = DEFAULT_CONCURRENCY } = {}
 }
 
 // CLI
-const args = process.argv.slice(2);
-
-// --concurrency N オプションの解析
-let concurrency = DEFAULT_CONCURRENCY;
-const concurrencyIdx = args.indexOf("--concurrency");
-if (concurrencyIdx !== -1) {
-  concurrency = parseInt(args[concurrencyIdx + 1], 10) || DEFAULT_CONCURRENCY;
-  args.splice(concurrencyIdx, 2);
-}
-
-const caseFiles = args.length > 0 ? args : ["tdd-behavior.yaml"];
+const { concurrency, positional } = parseCliArgs(process.argv.slice(2), DEFAULT_CONCURRENCY);
+const caseFiles = positional.length > 0 ? positional : ["tdd-behavior.yaml"];
 
 runAblation(caseFiles, { concurrency }).catch((err) => {
   console.error("Fatal:", err);

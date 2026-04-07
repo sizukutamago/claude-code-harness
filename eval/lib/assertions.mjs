@@ -291,3 +291,27 @@ export function runAssertion(trace, assertion) {
 export function runAssertions(trace, assertions) {
   return assertions.map((a) => runAssertion(trace, a));
 }
+
+/**
+ * assertions 配列を決定的 + llm-rubric-trace に分割して実行し、
+ * 結果を結合して返す。
+ *
+ * run-eval.mjs / run-ablation.mjs で重複していたパイプラインを共通化。
+ *
+ * @param {object} trace - trace-v1 オブジェクト
+ * @param {object[]} assertions - テストケースの assert 配列
+ * @param {function} checkLlmRubricTrace - claude-cli.mjs からの LLM 判定関数
+ * @returns {Promise<object[]>} assertion 結果の配列
+ */
+export async function runAssertionPipeline(trace, assertions, checkLlmRubricTrace) {
+  const deterministicAssertions = assertions.filter((a) => a.type !== "llm-rubric-trace");
+  const llmAssertions = assertions.filter((a) => a.type === "llm-rubric-trace");
+
+  const results = runAssertions(trace, deterministicAssertions);
+
+  for (const a of llmAssertions) {
+    results.push(await checkLlmRubricTrace(trace, a.value));
+  }
+
+  return results;
+}

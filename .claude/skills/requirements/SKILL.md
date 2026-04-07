@@ -431,6 +431,12 @@ Then パスワードが平文ではなくハッシュ化されて保存されて
 
 ## Integration
 
+**前提スキル:**
+- なし（ワークフローの起点）
+
+**必須ルール:**
+- **docs-structure** — 出力ファイルの配置・命名規則
+
 **出力:**
 - `requirements/REQ-<連番>-<slug>/requirements.md` — 下流の全スキル・エージェントが参照する正本
 - `requirements/REQ-<連番>-<slug>/context.md` — 背景・ヒアリング記録・前提

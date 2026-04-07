@@ -11,55 +11,24 @@
  * 5. 結果を eval/results/ に保存
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { resolve, basename, join } from "node:path";
+import { resolve, basename } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { parseStreamJson, buildTrace } from "./lib/trace.mjs";
-import { runAssertions as runDeterministicAssertions } from "./lib/assertions.mjs";
+import { runAssertionPipeline } from "./lib/assertions.mjs";
 import { claudeRun, checkLlmRubricTrace } from "./lib/claude-cli.mjs";
 import { mapWithConcurrency } from "./lib/concurrency.mjs";
+import { prepareWorkdir, cleanupWorkdir } from "./lib/workdir.mjs";
+import { parseCliArgs } from "./lib/cli-args.mjs";
 
 const execFileAsync = promisify(execFile);
 
 const ROOT = resolve(import.meta.dirname, "..");
 const EVAL_DIR = resolve(import.meta.dirname);
-const FIXTURES_DIR = resolve(EVAL_DIR, "fixtures");
 
 const DEFAULT_CONCURRENCY = 3;
-
-// --- Fixture ---
-
-function prepareWorkdir(fixtureName) {
-  const workdirsRoot = resolve(EVAL_DIR, "workdirs");
-  mkdirSync(workdirsRoot, { recursive: true });
-  const workdir = mkdtempSync(join(workdirsRoot, "run-"));
-
-  // base fixture を先にコピー（CLAUDE.md, ルール, スキル等）
-  const baseDir = resolve(FIXTURES_DIR, "base");
-  try {
-    cpSync(baseDir, workdir, { recursive: true });
-  } catch {
-    // base がなければスキップ
-  }
-
-  // ケース固有の fixture を上書きコピー
-  if (fixtureName) {
-    const fixtureDir = resolve(FIXTURES_DIR, fixtureName);
-    cpSync(fixtureDir, workdir, { recursive: true });
-  }
-
-  return workdir;
-}
-
-function cleanupWorkdir(workdir) {
-  try {
-    rmSync(workdir, { recursive: true, force: true });
-  } catch {
-    // cleanup failure は無視
-  }
-}
 
 // --- 単一テストの実行 ---
 
@@ -68,7 +37,7 @@ async function runSingleTest(test, { caseFile, caseFixture, defaultMaxTurns }) {
   const maxTurns = test.run?.max_turns || defaultMaxTurns;
   const fixture = test.fixture || caseFixture;
 
-  // 1. 一時ディレクトリを作成し fixture をコピー
+  // 1. 一時ディレクトリを作成し fixture をコピー（ルールあり）
   const workdir = prepareWorkdir(fixture);
 
   // 2. Claude Code 実行 (stream-json)
@@ -98,17 +67,8 @@ async function runSingleTest(test, { caseFile, caseFixture, defaultMaxTurns }) {
     task: test.vars.task,
   });
 
-  // 4. 決定的 assertion を実行
-  const assertions = test.assert || [];
-  const deterministicAssertions = assertions.filter((a) => a.type !== "llm-rubric-trace");
-  const llmAssertions = assertions.filter((a) => a.type === "llm-rubric-trace");
-
-  const results = runDeterministicAssertions(trace, deterministicAssertions);
-
-  // 5. llm-rubric-trace を実行（あれば）
-  for (const a of llmAssertions) {
-    results.push(await checkLlmRubricTrace(trace, a.value));
-  }
+  // 4. 決定的 assertion + llm-rubric-trace を実行
+  const results = await runAssertionPipeline(trace, test.assert || [], checkLlmRubricTrace);
 
   const allPass = results.every((r) => r.pass === true);
   console.log(`  ${test.description} ... ${allPass ? "PASS" : "FAIL"}`);
@@ -215,17 +175,8 @@ async function runEval(caseFiles, { concurrency = DEFAULT_CONCURRENCY } = {}) {
 }
 
 // CLI
-const args = process.argv.slice(2);
-
-// --concurrency N オプションの解析
-let concurrency = DEFAULT_CONCURRENCY;
-const concurrencyIdx = args.indexOf("--concurrency");
-if (concurrencyIdx !== -1) {
-  concurrency = parseInt(args[concurrencyIdx + 1], 10) || DEFAULT_CONCURRENCY;
-  args.splice(concurrencyIdx, 2);
-}
-
-const caseFiles = args.length > 0 ? args : ["tdd-behavior.yaml"];
+const { concurrency, positional } = parseCliArgs(process.argv.slice(2), DEFAULT_CONCURRENCY);
+const caseFiles = positional.length > 0 ? positional : ["tdd-behavior.yaml"];
 
 runEval(caseFiles, { concurrency }).catch((err) => {
   console.error("Fatal:", err);

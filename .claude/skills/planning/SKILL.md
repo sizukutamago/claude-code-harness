@@ -284,6 +284,9 @@ Task-1 → Task-2 → Task-3
 - **requirements** — 承認済みの requirements.md が存在すること
 - **roadmap**（大規模時のみ）— 複数フェーズの場合、roadmap.md で各フェーズの scope が定義済みであること
 
+**必須ルール:**
+- **docs-structure** — 計画ドキュメントの配置・命名規則
+
 **次のステップ:**
 - **tdd** — タスク順に TDD サイクルで実装する
 

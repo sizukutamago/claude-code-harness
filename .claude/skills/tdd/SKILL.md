@@ -227,6 +227,10 @@ PASS: 全テストグリーン
 
 ## Integration
 
+**前提スキル:**
+- **requirements** — 承認済みの requirements.md が存在すること（必須）
+- **planning** — タスク分解済みであること（推奨）
+
 **必須ルール:**
 - **testing** — テストルール（常時適用）
 - **coding-style** — コーディングルール（常時適用）

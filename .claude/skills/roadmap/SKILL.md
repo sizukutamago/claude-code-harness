@@ -210,6 +210,9 @@ Phase-1 → Phase-2 → Phase-4（最長経路）
 - **brainstorming** — 承認済みの design.md が存在すること
 - **requirements** — 承認済みの requirements.md が存在すること
 
+**必須ルール:**
+- **docs-structure** — ロードマップドキュメントの配置・命名規則
+
 **次のステップ:**
 - **planning** — 各フェーズの詳細計画（フェーズ数だけ繰り返す）
 
