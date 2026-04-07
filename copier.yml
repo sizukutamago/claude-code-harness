@@ -14,16 +14,25 @@ _exclude:
   - plans/
   - ".harness/"
   # プロジェクト既存ファイル（上書きしない）
-  - CLAUDE.md
   - HANDOVER.md
   - README.md
   - ".gitignore"
   # ハーネスリポジトリのメタファイル
   - package.json
   - package-lock.json
+  # ハーネスリポジトリの変更履歴（導入先に不要）
+  - CHANGELOG.md
   # 導入先に不要な md（.claude/ 内は除く）
   - "*.md"
   - "!.claude/**/*.md"
+
+_skip_if_exists:
+  - CLAUDE.md
+
+project_name:
+  type: str
+  default: "my-project"
+  help: "プロジェクト名"
 
 use_playwright_mcp:
   type: bool

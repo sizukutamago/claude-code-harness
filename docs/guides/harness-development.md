@@ -258,3 +258,44 @@ use_new_module:
 - [ ] Integration セクション（スキルの場合）を記載した
 - [ ] 双方向リンク（参照元・参照先）を更新した
 - [ ] 人間パートナーにレビューを依頼した
+
+---
+
+## チームでの貢献ワークフロー
+
+### harness-contribute による還元
+
+プロジェクト側でハーネスの改善を見つけたら、`/harness-contribute` スキルでテンプレートリポジトリに PR を作成できる。
+
+1. プロジェクト内で改善を実施（スキル修正、ルール追加等）
+2. `/harness-contribute` を実行し、対象ファイルを指定
+3. ハーネスリポジトリに feature branch が作成され、PR が自動作成される
+4. チームでレビュー → マージ → `copier update` で全プロジェクトに反映
+
+### 変更の影響範囲
+
+ハーネスの変更は `copier update` で全導入先プロジェクトに反映される。変更前に以下を確認:
+
+- **スキル変更**: Integration セクションの依存先も更新が必要か？
+- **エージェント変更**: tools 制限の変更は最小権限の原則に従っているか？
+- **ルール変更**: 既存ルールとの優先順位に矛盾はないか？
+- **フック変更**: fail-closed / fail-open の方針は適切か？
+
+### 変更のテスト方法
+
+```bash
+# モジュールテスト（Copier テンプレート展開の4パターン検証）
+node eval/test-modules.mjs
+
+# ローカルでの copier copy テスト（一時ディレクトリに展開）
+copier copy --trust . /tmp/test-project
+
+# eval 実行（行動ベーステスト）
+node eval/run-eval.mjs tdd-behavior.yaml
+```
+
+### CHANGELOG の更新
+
+ハーネスに変更を加えたら、ルートの `CHANGELOG.md` の `## [Unreleased]` セクションに変更内容を追記する。
+
+フォーマット: Keep a Changelog（Added / Changed / Fixed / Removed）

@@ -42,6 +42,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/scripts/workflow-event-logger.mjs",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PermissionDenied": [
