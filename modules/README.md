@@ -23,7 +23,7 @@ modules/<module-name>/
 ## モジュール追加時の手順
 
 1. `modules/<name>/` にマニフェストと定義ファイルを作成
-2. `.claude/agents/` に `.md.jinja` ファイルを追加（`{%- if "<name>" in modules %}` で条件付き）
-3. `.claude/skills/` に `SKILL.md.jinja` を追加（必要な場合）
+2. `.claude/agents/` に `.md.jinja` ファイルを追加（`{%- if use_<name>_mcp %}` で条件付き）
+3. `.claude/skills/` に `SKILL.md.jinja` を追加（必要な場合、同様に条件付き）
 4. `.mcp.json.jinja` に MCP サーバー設定を追加
-5. `copier.yml` の `modules.choices` に選択肢を追加
+5. `copier.yml` に `use_<name>_mcp` の bool 質問を追加

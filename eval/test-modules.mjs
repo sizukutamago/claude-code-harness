@@ -105,7 +105,7 @@ for (const tc of TEST_CASES) {
       .flatMap(([k, v]) => ["-d", `${k}=${v}`]);
 
     execFileSync("copier", [
-      "copy", "--defaults", ...dataArgs,
+      "copy", "--defaults", "--trust", ...dataArgs,
       "--vcs-ref", "HEAD",
       ROOT, outDir,
     ], { stdio: "pipe", timeout: 30000 });

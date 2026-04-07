@@ -80,8 +80,8 @@
      │  🪝 post-verification: 不要ファイル検出
      ↓
 [11] コミット・PR
-     │  🪝 pre-commit: lint, test, security
-     │  🪝 post-commit: ドキュメント更新チェック
+     │  🪝 verification-gate: 検証証拠チェック（PreToolUse Bash）
+     │  🪝 post-verification-scan: 不要ファイル警告（PreToolUse Bash）
      │  📄 postmortems/（必要なら）
      ↓
 [12] 振り返り・学習

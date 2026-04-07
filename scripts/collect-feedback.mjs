@@ -3,7 +3,7 @@
 /**
  * collect-feedback.mjs
  *
- * .harness/session-feedback.jsonl からフィードバックを収集・分析するスクリプト。
+ * .claude/harness/session-feedback.jsonl からフィードバックを収集・分析するスクリプト。
  * LLM を使わない決定的処理のみ。
  *
  * 機能:
@@ -25,7 +25,7 @@ const ROOT = resolve(import.meta.dirname, "..");
 function parseArgs() {
   const args = process.argv.slice(2);
   const opts = {
-    feedbackFile: resolve(ROOT, ".harness/session-feedback.jsonl"),
+    feedbackFile: resolve(ROOT, ".claude/harness/session-feedback.jsonl"),
   };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--feedback-file" && args[i + 1]) {
@@ -55,7 +55,7 @@ function readFeedbackFile(filePath) {
 // --- Claude が触ったファイルを取得（session-tool-log.jsonl から） ---
 
 function getClaudeChangedFiles() {
-  const toolLogPath = resolve(ROOT, ".harness/session-tool-log.jsonl");
+  const toolLogPath = resolve(ROOT, ".claude/harness/session-tool-log.jsonl");
   if (!existsSync(toolLogPath)) {
     return [];
   }

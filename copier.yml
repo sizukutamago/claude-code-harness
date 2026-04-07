@@ -34,3 +34,8 @@ use_figma_mcp:
   type: bool
   default: false
   help: "Figma MCP を使用する？（Figma 参照・編集）"
+
+# 条件付き Jinja テンプレート（{%- if ... -%}...{%- endif -%}）は
+# 条件が false でも空ファイルを生成する。後処理で空ファイルを削除する。
+_tasks:
+  - "find . -maxdepth 5 \\( -name '*.md' -o -name '.mcp.json' \\) -empty -delete 2>/dev/null; find . -type d -empty -delete 2>/dev/null; true"

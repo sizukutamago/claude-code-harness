@@ -108,8 +108,8 @@ test-quality-engineer:        Read, Grep, Glob, Write, Edit, Bash, AskUserQuesti
 |---|---|---|---|
 | quality-reviewer | ❌ | ❌ | ✅ 完全隔離 |
 | security-reviewer | ❌ | ❌ | ✅ 完全隔離 |
-| spec-reviewer | ❌ | ❌ | ✅ 完全隔離 |
-| spec-doc-reviewer | ❌ | ❌ | ✅ 完全隔離 |
+| spec-compliance-reviewer | ❌ | ❌ | ✅ 完全隔離 |
+| design-reviewer | ❌ | ❌ | ✅ 完全隔離 |
 | plan-reviewer | ❌ | ❌ | ✅ 完全隔離 |
 | improvement-proposer | ❌ | ❌ | ✅ 完全隔離 |
 | brainstormer | ❌ | ❌ (質問のみ) | ✅ 完全隔離 |
