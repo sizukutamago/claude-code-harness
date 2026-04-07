@@ -1,5 +1,7 @@
 # claude-code-harness
 
+> A Copier template that deploys workflows, skills, agents, rules, hooks, and eval into `.claude/` to boost quality and speed of AI-driven development with Claude Code.
+
 AI駆動開発のための統合ハーネス（Copier テンプレート）。
 
 ワークフロー・スキル・エージェント・ルール・eval を `.claude/` に展開し、チームの開発品質・スピードを底上げする。
