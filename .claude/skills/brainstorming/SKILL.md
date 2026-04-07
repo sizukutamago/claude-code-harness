@@ -218,7 +218,7 @@ last_updated: YYYY-MM-DD
 ```markdown
 ---
 status: Approved
-owner: sizukutamago
+owner: your-name
 last_updated: 2026-03-31
 ---
 

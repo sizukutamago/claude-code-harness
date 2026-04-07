@@ -838,11 +838,8 @@ claude -p --output-format stream-json --verbose
 
 ## References
 
-- [Problem Shaping: ハーネスエンジニアリング基盤](obsidian://note/2026-03-27-shaping-harness-engineering)
-- [調査: ハーネス効果測定アプローチ](obsidian://note/2026-03-27-research-harness-eval-approaches)
-- [調査: ハーネスアーキテクチャ設計パターン](obsidian://note/2026-03-27-research-harness-architecture)
-- [参考リポジトリ概要・比較](./reference-repos-overview.md)
-- [参考リポジトリ完全ダイジェスト](./reference-repos-digest.md)
+- [参考リポジトリ概要・比較](../research/reference-repos-overview.md)
+- [参考リポジトリ完全ダイジェスト](../research/reference-repos-digest.md)
 - [Anthropic: How We Built Our Multi-Agent Research System](https://www.anthropic.com/engineering/multi-agent-research-system)
 - [Addy Osmani: The Code Agent Orchestra](https://addyosmani.com/blog/code-agent-orchestra/)
 - [Claude Code Docs: Create Custom Subagents](https://code.claude.com/docs/en/sub-agents)

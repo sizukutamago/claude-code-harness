@@ -307,7 +307,7 @@ A: 8文字以上、それ以外は特になし
 ```markdown
 ---
 status: Approved
-owner: sizukutamago
+owner: your-name
 last_updated: 2026-03-31
 ---
 

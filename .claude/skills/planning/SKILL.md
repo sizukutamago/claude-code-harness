@@ -185,7 +185,7 @@ Task-1 → Task-2 → Task-4
 ```markdown
 ---
 status: Approved
-owner: sizukutamago
+owner: your-name
 last_updated: 2026-04-01
 ---
 
