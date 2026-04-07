@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/*"
+  - "**/*.{test,spec}.{ts,tsx,js,jsx}"
+  - "**/__tests__/**"
 ---
 
 # Testing Rules
