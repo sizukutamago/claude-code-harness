@@ -23,9 +23,7 @@
   "homepage": "https://github.com/sizukutamago/claude-code-harness#readme",
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.81.0",
-    "promptfoo": "^0.121.3"
-  },
-  "dependencies": {
+    "promptfoo": "^0.121.3",
     "yaml": "^2.8.3"
   }
 }
