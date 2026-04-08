@@ -11,7 +11,7 @@ description: "設計確定後、実装前に使用。設計をタスクに分解
 何を、どの順序で、どの粒度で実装するかを明確にし、実装の見通しを立てる。
 
 **入力:** REQ パス（例: `requirements/REQ-001/`）+ 承認済みの `design.md` 全文 + `requirements.md` 全文
-**出力:** `requirements/REQ-*/plan.md`（承認済み実装計画）
+**出力:** `docs/plans/{slug}-plan.md`（承認済み実装計画）
 
 **原則:** 計画なしの実装は、地図なしの登山だ。途中で道を見失ったとき、戻る場所がない。
 
@@ -33,7 +33,7 @@ description: "設計確定後、実装前に使用。設計をタスクに分解
 ## いつ使うか
 
 **常に:**
-- 設計（brainstorming）完了後
+- 設計（design）完了後
 - 複数ファイルにまたがる実装
 - 依存関係のあるタスク群
 
@@ -100,14 +100,18 @@ planner の報告をもとに、実装順序を確定する。
 
 ## 出力ファイル構成
 
-対応する REQ ディレクトリ内に計画ドキュメントを作成する:
+`docs/plans/` に計画ドキュメントを作成する:
 
 ```
-requirements/REQ-001-user-register/
-  requirements.md   # （既存）
-  context.md        # （既存）
-  design.md         # （既存）
-  plan.md           # ★実装計画
+docs/
+  plans/
+    {slug}-plan.md    # ★実装計画（例: mvp-setup-plan.md）
+  design/
+    {slug}.md         # 設計書（design スキルで作成済み）
+requirements/
+  REQ-001-xxx/
+    requirements.md   # 要件（requirements スキルで作成済み）
+    context.md
 ```
 
 ## plan.md テンプレート
@@ -244,7 +248,7 @@ Task-1 → Task-2 → Task-3
 | 問題 | 解決策 |
 |------|--------|
 | タスクの粒度がわからない | 「テストを書いて実装して GREEN にする」が1セッションで終わる粒度 |
-| 依存関係が複雑すぎる | 設計に問題がある可能性。brainstorming に戻って設計を簡素化 |
+| 依存関係が複雑すぎる | 設計に問題がある可能性。design に戻って設計を簡素化 |
 | 全タスクが直列になる | 共通の interface/型を先に定義して、実装を並列にできないか検討 |
 | タスク数が多すぎる | 関連するタスクをグループ化。ただし1タスク=1TDDサイクルは崩さない |
 | 計画通りに進まない | 計画を更新しろ。計画は固定ではない。ただし変更理由を記録する |
@@ -263,7 +267,7 @@ Task-1 → Task-2 → Task-3
 2. **あなたが実装順序を確認し、plan.md を作成する**
    - planner の報告をもとに plan.md テンプレートに従って構造化する
    - 依存関係・並列可能タスク・リスクを整理する
-   - `requirements/REQ-*/plan.md` に出力する
+   - `docs/plans/{slug}-plan.md` に出力する
 
 3. **`plan-reviewer` エージェントをディスパッチして計画をレビューする**
    - プロンプトに REQ パス + plan.md 全文 + design.md 全文 + requirements.md 全文を含める
@@ -280,7 +284,7 @@ Task-1 → Task-2 → Task-3
 ## Integration
 
 **前提スキル:**
-- **brainstorming** — 承認済みの design.md が存在すること
+- **design** — 承認済みの design.md が存在すること
 - **requirements** — 承認済みの requirements.md が存在すること
 - **roadmap**（大規模時のみ）— 複数フェーズの場合、roadmap.md で各フェーズの scope が定義済みであること
 

@@ -1,6 +1,6 @@
 ---
 name: requirements
-description: "機能開発・バグ修正の着手前に使用。人間パートナーとの対話で要件を構造化し、要件ドキュメントを作成する。"
+description: "機能開発・バグ修正の着手前に使用。メインセッションで人間パートナーと対話し、要件を構造化する。コード調査は Explore エージェントに委譲。"
 ---
 
 # Requirements（要件理解）
@@ -46,15 +46,17 @@ description: "機能開発・バグ修正の着手前に使用。人間パート
 digraph requirements {
     rankdir=TB;
     input [label="タスク受領", shape=ellipse];
-    gather [label="情報収集\nrequirements-analyst", shape=box, style=filled, fillcolor="#cce5ff"];
+    explore [label="調査\nExplore エージェント\n(コード/ドキュメント)", shape=box, style=filled, fillcolor="#cce5ff"];
+    shaping [label="深掘り対話\n「何がしたいか」「なぜか」\nAskUserQuestion", shape=box, style=filled, fillcolor="#ccffcc"];
     gap [label="差分分析\n既知/未知/曖昧を整理", shape=box, style=filled, fillcolor="#cce5ff"];
-    dialog [label="差分ヒアリング\nAskUserQuestion", shape=box, style=filled, fillcolor="#ccffcc"];
+    dialog [label="差分ヒアリング\nAskUserQuestion\n（不足部分だけ）", shape=box, style=filled, fillcolor="#ccffcc"];
     structure [label="要件ドキュメント\n構造化・作成", shape=box, style=filled, fillcolor="#ccccff"];
     review [label="人間パートナーの\n承認", shape=diamond];
     done [label="要件確定\n→ 次のステップへ", shape=ellipse];
 
-    input -> gather;
-    gather -> gap;
+    input -> explore;
+    explore -> shaping;
+    shaping -> gap;
     gap -> dialog;
     dialog -> structure;
     structure -> review;
@@ -63,9 +65,9 @@ digraph requirements {
 }
 ```
 
-### 1. 情報収集
+### 1. 調査（Explore エージェント）
 
-`requirements-analyst` にコードベース・ドキュメントの調査を委譲する。
+Explore エージェントにコードベース・ドキュメントの調査を委譲する。
 
 調査対象:
 - 関連する既存コード・モジュール
@@ -212,7 +214,7 @@ Then [期待結果]
 [なぜこの変更が必要か。ビジネス的な経緯]
 
 ## 調査結果
-[requirements-analyst の報告要約]
+[Explore エージェントの報告要約]
 
 ## ヒアリング記録
 
@@ -390,44 +392,77 @@ Then パスワードが平文ではなくハッシュ化されて保存されて
 |------|--------|
 | 人間パートナーが要件を決められない | 選択肢を提示して選んでもらう。「AとBどちらですか？」 |
 | 要件が大きすぎる | タスクを分割する。1つの REQ で1つの機能 |
-| 技術的な制約がわからない | requirements-analyst にコードベース調査を委譲 |
+| 技術的な制約がわからない | Explore エージェントにコードベース調査を委譲 |
 | 要件が曖昧なまま進みたいと言われた | リスクを伝えた上で、最低限の AC だけでも合意する |
 | やらないことの理由が不明確 | decisions.md に Revisit Trigger 付きで記録し、後で再検討可能にする |
 
+## 役割分担（重要）
+
+| 担当 | 責務 | できること |
+|------|------|----------|
+| メインセッション（あなた） | 対話・評価・意思決定 | AskUserQuestion、判断、ドキュメント作成 |
+| Explore エージェント | コードベース/ドキュメント調査 | Read, Grep, Glob（調査のみ） |
+
+**鉄則: 対話はサブエージェントに委譲するな。対話はメインセッションの責務だ。**
+
+Explore エージェントは「調べてきて」と頼む調査員。「ユーザーと話してきて」とは頼めない。
+
 ## 委譲指示
 
-あなたはこのスキルの対話プロセスを自分で実行する。ただし情報収集は委譲する。
+あなたはこのスキルの対話プロセスをメインセッションで自分で実行する。調査だけ Explore エージェントに委譲する。
 
-1. **`requirements-analyst` エージェントをディスパッチして情報収集する**
-   - 既存コードベース・ドキュメントの調査をディスパッチする
-   - プロンプトにタスクの概要 + 調査対象のヒント（ディレクトリ、モジュール名等）を含める
-   - `requirements-analyst` は調査結果を構造化して報告する
+### Phase 1: 調査
 
-2. **差分分析を行い、不足する論点を特定する**
-   - 調査結果から既知/未知/曖昧を整理する
-   - テンプレ質問を全部聞くな。不足している論点だけ質問を組み立てる
+Explore エージェント（subagent_type=Explore）に既存コードベース・ドキュメントの調査を委譲する。
 
-3. **差分ヒアリングを AskUserQuestion で実行する**
-   - 選択肢ベースの質問を優先する（2-4個の選択肢 + その他）
-   - 一度に3問以内。回答を見て追加質問する
-   - 推測を述べて確認を求める形式を優先する
-   - 質問と回答を context.md のヒアリング記録に記録する
+- プロンプトにタスクの概要 + 調査対象のヒント（ディレクトリ、モジュール名等）を含める
+- 調査対象: 関連既存コード・仕様書・ADR・技術的制約・関連テスト
 
-4. **要件ドキュメントを作成する**
-   - 確定した事実を requirements.md に構造化する
-   - 背景・ヒアリング記録・前提を context.md に記録する
-   - 除外判断や代替案の検討があれば decisions.md を追加する
-   - `requirements/REQ-<連番>-<slug>/` ディレクトリに出力する
+### Phase 2: 対話で深掘り
 
-5. **人間パートナーに承認を依頼する**
-   - requirements.md を提示し、承認を得る
-   - 修正要求があればヒアリングに戻る
-   - 承認後、status を Approved に更新する
+メインセッションで AskUserQuestion を使い、「何がしたいか」「なぜか」を段階的に深掘りする。
 
-6. **承認後、次のステップに進む**
-   - 設計が必要 → brainstorming へ
-   - タスク分解が必要 → planning へ
-   - すぐ実装できる → tdd へ
+- まず目的・背景から入る（problem-shaping 的）: 「何を解決したいか」「なぜ今必要か」
+- Tsumiki 方式: 調査で把握できた情報を先に示し、差分だけ質問する
+- Superpowers 方式: 一度に1-2問、回答を見て次の質問を決める
+
+### Phase 3: 差分分析
+
+調査結果と対話で得た情報から、以下を整理する:
+
+- **既知**: 既存資料・対話から確定している事実
+- **未知**: 情報が存在しない部分
+- **曖昧**: 情報はあるが解釈が割れる部分
+
+この整理が次の差分ヒアリングの質問を決める。**テンプレ質問を機械的に全部聞くな。不足している論点だけ質問を生成しろ。**
+
+### Phase 4: 差分ヒアリング
+
+AskUserQuestion を使い、不足部分だけを段階的に質問する。
+
+- 選択肢ベースの質問を優先する（2-4個の選択肢 + その他）
+- 一度に3問以内。回答を見て追加質問する
+- 推測を述べて確認を求める形式を優先する
+- 質問と回答を context.md のヒアリング記録に記録する
+
+### Phase 5: 要件ドキュメント作成
+
+- 確定した事実を requirements.md に構造化する
+- 背景・ヒアリング記録・前提を context.md に記録する
+- 除外判断や代替案の検討があれば decisions.md を追加する
+- `requirements/REQ-<連番>-<slug>/` ディレクトリに出力する
+
+### Phase 6: 承認
+
+- requirements.md を提示し、人間パートナーの承認を得る
+- 修正要求があれば Phase 4 に戻る
+- 承認後、status を Approved に更新する
+
+### Phase 7: 次のステップへ
+
+- 設計が必要 → **design** へ
+- タスク分解が必要 → planning へ
+- すぐ実装できる → tdd へ
 
 ## Integration
 
@@ -443,7 +478,7 @@ Then パスワードが平文ではなくハッシュ化されて保存されて
 - `requirements/REQ-<連番>-<slug>/decisions.md` — スコープ判断（除外判断があるときのみ）
 
 **次のステップ:**
-- **brainstorming** — 設計が必要な場合
+- **design** — 設計が必要な場合
 - **planning** — タスク分解が必要な場合
 - **tdd** — すぐ実装できる場合
 

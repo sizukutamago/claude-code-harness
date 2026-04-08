@@ -11,7 +11,7 @@ description: "大規模プロジェクト（複数機能・フェーズ分割が
 各フェーズの範囲・マイルストーン・依存関係・リスクを定義し、実装の全体見通しを立てる。
 
 **入力:** REQ パス + 承認済みの `requirements.md`（複数機能を含む）+ `design.md`（全体アーキテクチャ）
-**出力:** `requirements/REQ-*/roadmap.md`（承認済みロードマップ）
+**出力:** `docs/plans/{slug}-roadmap.md`（承認済みロードマップ）
 
 **原則:** 大規模を大規模のまま扱うな。分割して、各フェーズを planning スキルに渡せ。
 
@@ -101,10 +101,14 @@ digraph roadmap {
 ## 出力ファイル構成
 
 ```
-requirements/REQ-001-project-name/
-  requirements.md   # （既存）複数機能の統合要件
-  design.md         # （既存）全体アーキテクチャ
-  roadmap.md        # ★ロードマップ
+docs/
+  plans/
+    {slug}-roadmap.md   # ★ロードマップ
+  design/
+    {slug}.md           # 設計書（design スキルで作成済み）
+requirements/
+  REQ-001-xxx/
+    requirements.md     # 要件（requirements スキルで作成済み）
 ```
 
 ## roadmap.md テンプレート
@@ -190,7 +194,7 @@ Phase-1 → Phase-2 → Phase-4（最長経路）
 2. **あなたがマイルストーンを整理し、roadmap.md を作成する**
    - roadmap-planner の報告をもとに roadmap.md テンプレートに従って構造化する
    - クリティカルパス・並列実行可能フェーズを特定する
-   - `requirements/REQ-*/roadmap.md` に出力する
+   - `docs/plans/{slug}-roadmap.md` に出力する
 
 3. **`plan-reviewer` エージェントをディスパッチしてレビューする**
    - プロンプトに roadmap.md 全文 + design.md 全文 + requirements.md 全文を含める
@@ -207,7 +211,7 @@ Phase-1 → Phase-2 → Phase-4（最長経路）
 ## Integration
 
 **前提スキル:**
-- **brainstorming** — 承認済みの design.md が存在すること
+- **design** — 承認済みの design.md が存在すること
 - **requirements** — 承認済みの requirements.md が存在すること
 
 **必須ルール:**
