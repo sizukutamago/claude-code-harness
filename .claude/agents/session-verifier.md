@@ -26,8 +26,8 @@ model: sonnet
 | ステップ | 確認方法 |
 |---------|---------|
 | [1] 要件理解 | `requirements/REQ-*/requirements.md` が存在するか |
-| [2] 設計 | `requirements/REQ-*/design.md` が存在するか |
-| [3] 計画 | `requirements/REQ-*/plan.md` が存在するか |
+| [2] 設計 | `docs/design/` に設計書が存在するか |
+| [3] 計画 | `docs/plans/` に実装計画が存在するか |
 | [4][5] 実装・テスト | テストファイルが存在し、テストが通るか |
 | [6] リファクタ | simplify の実施痕跡（コミットメッセージに言及があるか） |
 | [7] 品質テスト | TQ-* テストが追加されているか |

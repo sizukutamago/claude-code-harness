@@ -17,8 +17,7 @@
 | エージェント | model | tools | 対応スキル |
 |------------|-------|-------|-----------|
 | requirements-analyst | Opus | Read, Grep, Glob | requirements |
-| brainstormer | Opus | Read, Grep, Glob, AskUserQuestion | brainstorming |
-| design-reviewer | Opus | Read, Grep, Glob | brainstorming |
+| design-reviewer | Opus | Read, Grep, Glob | design |
 | roadmap-planner | Opus | Read, Grep, Glob, AskUserQuestion | roadmap |
 | planner | Opus | Read, Grep, Glob, AskUserQuestion | planning |
 | plan-reviewer | Opus | Read, Grep, Glob | planning |
@@ -32,6 +31,7 @@
 | cleanup-agent | Sonnet | Read, Grep, Glob, Write, Edit, Bash | cleanup |
 | test-runner | Sonnet | Read, Grep, Glob, Bash | (横断) |
 | doc-maintainer | Sonnet | Read, Grep, Glob, Write, Edit | (横断) |
+| docs-integrity-reviewer | Sonnet | Read, Grep, Glob | (横断) |
 | session-verifier | Sonnet | Read, Grep, Glob, Bash, Write | retrospective |
 | improvement-proposer | Opus | Read, Grep, Glob | retrospective |
 

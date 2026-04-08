@@ -15,9 +15,10 @@ paths:
 docs/
   design/       — 設計書（アーキテクチャ、モジュール設計）
   decisions/    — 意思決定記録（ADR: なぜXを選んだか）
+  plans/        — 実装計画（タスク分解、依存関係）
   research/     — 調査資料（技術調査、比較検討）
   guides/       — ガイド・手順書（配布手順、運用手順）
-  references.md — プロジェクト参照先の SSOT（setup-references スキルが生成）
+  references.md — プロジェクト参照先の SSOT
 ```
 
 ## 配置ルール
@@ -26,6 +27,7 @@ docs/
 |------|----------|-------------|-----|
 | 設計書 | `docs/design/` | `kebab-case.md` | `architecture-design.md` |
 | 意思決定記録 | `docs/decisions/` | `NNNN-kebab-title.md` | `0001-use-copier-for-distribution.md` |
+| 実装計画 | `docs/plans/` | `kebab-case.md` | `mvp-setup-plan.md` |
 | 調査資料 | `docs/research/` | `kebab-case.md` | `reference-repos-overview.md` |
 | ガイド | `docs/guides/` | `kebab-case.md` | `distribution-workflow.md` |
 | 参照先一覧 | `docs/references.md` | 固定名 | — |
@@ -72,7 +74,16 @@ docs/
 ```
 
 - Status は `検討中` → `Approved` or `Rejected` に遷移する
-- brainstorming スキルの design.md 内「設計判断」テーブルとは別物。ADR はワークフロー外の判断（廃止、アーキ変更等）を記録する
+- **全ての設計判断を ADR として記録する。** 設計書（docs/design/）内の設計判断テーブルからは ADR 番号で参照する。設計判断の SSOT は docs/decisions/ である。
+
+## SSOT（Single Source of Truth）ルール
+
+| 情報 | SSOT の場所 | やってはいけないこと |
+|------|------------|-------------------|
+| 設計判断（なぜXを選んだか） | `docs/decisions/` | 設計書内に判断理由を長々と書く（ADR 番号で参照せよ） |
+| 設計（どう作るか） | `docs/design/` | `requirements/REQ-*/` 内に design.md を置く |
+| 実装計画 | `docs/plans/` | `requirements/REQ-*/` 内に plan.md を置く |
+| 要件（何を作るか） | `requirements/REQ-*/` | 設計書や計画に要件を重複して書く |
 
 ## 禁止事項
 

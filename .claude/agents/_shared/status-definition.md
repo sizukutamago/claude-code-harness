@@ -25,7 +25,7 @@
 
 ## 分析系エージェント
 
-調査・提案を行うエージェント（requirements-analyst, brainstormer, planner, improvement-proposer）。
+調査・提案を行うエージェント（requirements-analyst, planner, improvement-proposer）。
 
 | Status | 条件 |
 |--------|------|

@@ -32,7 +32,7 @@
 | 対象ファイルの現在の内容 | 必須 | 変更対象のコード |
 | 関連テストの現在の内容 | 必須 | 既存のテストコード |
 
-### 分析系（requirements-analyst, brainstormer, planner）
+### 分析系（requirements-analyst, planner）
 
 | 項目 | 必須 | 内容 |
 |------|------|------|
