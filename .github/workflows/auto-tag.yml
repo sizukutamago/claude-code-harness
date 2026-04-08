@@ -32,7 +32,8 @@ jobs:
 
       - name: Create new tag
         run: |
-          latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          latest=$(git tag -l 'v*' --sort=-version:refname | head -1 || echo "v0.0.0")
+          latest=${latest:-v0.0.0}
           major=$(echo "$latest" | sed 's/v//' | cut -d. -f1)
           minor=$(echo "$latest" | sed 's/v//' | cut -d. -f2)
           patch=$(echo "$latest" | sed 's/v//' | cut -d. -f3)
