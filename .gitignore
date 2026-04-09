@@ -6,6 +6,8 @@ eval/results/
 
 # Internal operational docs (not for public distribution)
 HANDOVER.md
+/plans/
+!docs/plans/
 
 # Personal overrides
 CLAUDE.local.md
