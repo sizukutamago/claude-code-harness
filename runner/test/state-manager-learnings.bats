@@ -52,13 +52,16 @@ setup() {
 # extract_learnings
 # ---------------------------------------------------------------------------
 
-# AC-3: LEARNING: 行が正しく抽出される
+# AC-3: LEARNING: 行が正しく抽出される (JSONL フォーマット)
 @test "extract_learnings: extracts LEARNING lines from output text" {
-  local output_text='Some output text
-LEARNING: type=pattern content="Hono の router は app.route() でマウントする"
-More output text'
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' \
+    'Some output text' \
+    'LEARNING: {"type":"pattern","content":"Hono の router は app.route() でマウントする"}' \
+    'More output text' \
+    > "${log_file}"
 
-  extract_learnings "${output_text}" "${LEARNINGS}" "S-001" "tdd"
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
 
   run wc -l < "${LEARNINGS}"
   [ "$status" -eq 0 ]
@@ -68,12 +71,15 @@ More output text'
   [ "$output" = "Hono の router は app.route() でマウントする" ]
 }
 
-# AC-4: type=pattern と type=gotcha の両方が抽出される
+# AC-4: type=pattern と type=gotcha の両方が抽出される (JSONL フォーマット)
 @test "extract_learnings: extracts both type=pattern and type=gotcha entries" {
-  local output_text='LEARNING: type=pattern content="パターンの学習"
-LEARNING: type=gotcha content="落とし穴の学習"'
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' \
+    'LEARNING: {"type":"pattern","content":"パターンの学習"}' \
+    'LEARNING: {"type":"gotcha","content":"落とし穴の学習"}' \
+    > "${log_file}"
 
-  extract_learnings "${output_text}" "${LEARNINGS}" "S-001" "tdd"
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
 
   run wc -l < "${LEARNINGS}"
   [ "$status" -eq 0 ]
@@ -85,13 +91,16 @@ LEARNING: type=gotcha content="落とし穴の学習"'
   [[ "$output" == *"gotcha"* ]]
 }
 
-# AC-5: LEARNING: フォーマットに合わない行はスキップされる
+# AC-5: LEARNING: フォーマットに合わない行はスキップされる (JSONL フォーマット)
 @test "extract_learnings: skips lines that do not match the LEARNING format" {
-  local output_text='LEARNING: invalid format without type and content
-LEARNING: type=pattern content="有効なエントリ"
-LEARNING: type= content="type が空"'
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' \
+    'LEARNING: invalid format without json' \
+    'LEARNING: {"type":"pattern","content":"有効なエントリ"}' \
+    'LEARNING: {"type":"","content":"type が空"}' \
+    > "${log_file}"
 
-  extract_learnings "${output_text}" "${LEARNINGS}" "S-001" "tdd"
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
 
   run wc -l < "${LEARNINGS}"
   [ "$status" -eq 0 ]
@@ -102,12 +111,49 @@ LEARNING: type= content="type が空"'
   [ "$output" = "有効なエントリ" ]
 }
 
+# AC-5b: content に " を含む LEARNING は正しく抽出される (JSONL の利点)
+@test "extract_learnings: correctly extracts LEARNING with double-quote in content" {
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' 'LEARNING: {"type":"pattern","content":"use \"const\" instead of \"let\""}' \
+    > "${log_file}"
+
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
+
+  run wc -l < "${LEARNINGS}"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ]
+
+  run jq -r '.content' "${LEARNINGS}"
+  [ "$output" = 'use "const" instead of "let"' ]
+}
+
+# AC-5c: type が pattern/gotcha/fix 以外の場合はスキップされる
+@test "extract_learnings: skips LEARNING with invalid type" {
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' \
+    'LEARNING: {"type":"invalid_type","content":"有効なコンテンツ"}' \
+    'LEARNING: {"type":"pattern","content":"有効なエントリ"}' \
+    > "${log_file}"
+
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
+
+  run wc -l < "${LEARNINGS}"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ]
+
+  run jq -r '.content' "${LEARNINGS}"
+  [ "$output" = "有効なエントリ" ]
+}
+
 # AC-6: LEARNING: 行がない場合もエラーにならない
 @test "extract_learnings: does not error when no LEARNING lines exist" {
-  local output_text='Some output text without any LEARNING lines
-Just normal output'
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' \
+    'Some output text without any LEARNING lines' \
+    'Just normal output' \
+    > "${log_file}"
 
-  run extract_learnings "${output_text}" "${LEARNINGS}" "S-001" "tdd"
+  run extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
   [ "$status" -eq 0 ]
 
   # ファイルが作成されないか空である

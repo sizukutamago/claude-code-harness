@@ -124,6 +124,19 @@ record_skip_reason() {
 }
 
 # ---------------------------------------------------------------------------
+# record_failed_reason <plan_file> <story_id> <reason>
+#   指定ストーリーの failed_reason フィールドに理由を記録する。
+# ---------------------------------------------------------------------------
+record_failed_reason() {
+  local plan_file="$1"
+  local story_id="$2"
+  local reason="$3"
+  _jq_update_plan "${plan_file}" \
+    '.stories |= map(if .id == $sid then .failed_reason = $val else . end)' \
+    --arg sid "${story_id}" --arg val "${reason}"
+}
+
+# ---------------------------------------------------------------------------
 # skip_dependents <plan_file> <story_id>
 #   指定ストーリーに依存する全ストーリーを再帰的に skipped にする。
 #   依存チェーン: A が failed → B (depends_on A) が skipped → C (depends_on B) も skipped
@@ -204,16 +217,22 @@ record_learning() {
 }
 
 # ---------------------------------------------------------------------------
-# extract_learnings <output_text> <learnings_file> <story_id> <step>
-#   テキストから "LEARNING: type=XXX content="YYY"" 形式の行を抽出して
+# extract_learnings <log_file> <learnings_file> <story_id> <step>
+#   ログファイルから "LEARNING: {...}" JSONL 形式の行を抽出して
 #   record_learning で learnings_file に追記する。
+#   フォーマット: LEARNING: {"type":"pattern","content":"..."}
+#   有効な type 値: pattern, gotcha, fix
 #   フォーマットに合わない行はスキップする（エラーにしない）。
 # ---------------------------------------------------------------------------
 extract_learnings() {
-  local output_text="$1"
+  local log_file="$1"
   local learnings_file="$2"
   local story_id="$3"
   local step="$4"
+
+  if [ ! -f "${log_file}" ]; then
+    return 0
+  fi
 
   while IFS= read -r line; do
     # "LEARNING: " で始まる行のみ処理する
@@ -224,22 +243,23 @@ extract_learnings() {
     # "LEARNING: " プレフィックスを除去する
     local payload="${line#LEARNING: }"
 
-    # type=XXX を抽出する（空でないこと）
-    local type=""
-    if [[ "${payload}" =~ type=([^[:space:]]+) ]]; then
-      type="${BASH_REMATCH[1]}"
-    fi
+    # jq で JSON としてパースする（失敗したらスキップ）
+    local parsed_json
+    parsed_json="$(printf '%s' "${payload}" | jq -c '.' 2>/dev/null)" || continue
 
-    # content="YYY" を抽出する
-    local content=""
-    if [[ "${payload}" =~ content=\"([^\"]*)\" ]]; then
-      content="${BASH_REMATCH[1]}"
-    fi
+    # type を抽出する
+    local type
+    type="$(printf '%s' "${parsed_json}" | jq -r '.type // empty' 2>/dev/null)" || continue
 
-    # type が空の場合はスキップする
-    if [ -z "${type}" ]; then
-      continue
-    fi
+    # type が pattern/gotcha/fix のいずれかであることを検証する
+    case "${type}" in
+      pattern|gotcha|fix) ;;
+      *) continue ;;
+    esac
+
+    # content を抽出する
+    local content
+    content="$(printf '%s' "${parsed_json}" | jq -r '.content // empty' 2>/dev/null)" || continue
 
     # content が空の場合はスキップする（フォーマット不正）
     if [ -z "${content}" ]; then
@@ -247,7 +267,7 @@ extract_learnings() {
     fi
 
     record_learning "${learnings_file}" "${story_id}" "${step}" "${type}" "${content}"
-  done <<< "${output_text}"
+  done < "${log_file}"
 }
 
 # ---------------------------------------------------------------------------
@@ -332,6 +352,8 @@ generate_summary() {
       completed: (.stories | map(select(.status == "completed")) | length),
       failed: (.stories | map(select(.status == "failed")) | length),
       skipped: (.stories | map(select(.status == "skipped")) | length),
+      pending: (.stories | map(select(.status == "pending")) | length),
+      in_progress: (.stories | map(select(.status == "in_progress")) | length),
       stories: [.stories[] | {id, status, completed_steps, attempts}]
     }' "${plan_file}"
 }

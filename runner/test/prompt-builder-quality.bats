@@ -26,3 +26,30 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"(no learnings yet)"* ]]
 }
+
+# ===========================================================================
+# AC-SHOULD-4: Design Reference セクション
+# ===========================================================================
+
+# AC-SHOULD-4-1: build_prompt の出力に ## Design Reference セクションが含まれる
+@test "AC-SHOULD-4-1: build_prompt: output contains Design Reference section" {
+  run build_prompt "${PLAN}" "${TEST_TMPDIR}/no-learnings.jsonl" "${CONVENTIONS}" "S-001" "tdd"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"## Design Reference"* ]]
+}
+
+# AC-SHOULD-4-2: build_prompt の出力に .source.design のパスが含まれる
+@test "AC-SHOULD-4-2: build_prompt: output contains the design file path from source.design" {
+  run build_prompt "${PLAN}" "${TEST_TMPDIR}/no-learnings.jsonl" "${CONVENTIONS}" "S-001" "tdd"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"docs/design/feature-x.md"* ]]
+}
+
+# AC-SHOULD-4-3: .source.design が存在しない場合は Design Reference セクションが含まれない
+@test "AC-SHOULD-4-3: build_prompt: no Design Reference section when source.design is absent" {
+  # source.design フィールドを削除した plan.json を作成する
+  jq 'del(.source.design)' "${PLAN}" > "${TEST_TMPDIR}/plan-no-design.json"
+  run build_prompt "${TEST_TMPDIR}/plan-no-design.json" "${TEST_TMPDIR}/no-learnings.jsonl" "${CONVENTIONS}" "S-001" "tdd"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"## Design Reference"* ]]
+}

@@ -32,10 +32,11 @@ setup() {
   [ "$output" = 'Use "strict mode" always' ]
 }
 
-# TQ-7: extract_learnings — content="" の行はスキップされる
+# TQ-7: extract_learnings — content が空の行はスキップされる (JSONL フォーマット)
 @test "TQ-7: extract_learnings: line with empty content is skipped" {
-  local output_text='LEARNING: type=pattern content=""'
-  extract_learnings "${output_text}" "${LEARNINGS}" "S-001" "tdd"
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' 'LEARNING: {"type":"pattern","content":""}' > "${log_file}"
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
   # ファイルが作成されないか、作成されても 0 行であること
   if [ -f "${LEARNINGS}" ]; then
     run wc -l < "${LEARNINGS}"
@@ -82,10 +83,11 @@ setup() {
   [[ "$output" == *"\\"* ]]
 }
 
-# TQ-22: extract_learnings — content にシングルクォートを含む場合も正常に抽出される
+# TQ-22: extract_learnings — content にシングルクォートを含む場合も正常に抽出される (JSONL フォーマット)
 @test "TQ-22: extract_learnings: content with single quote is extracted correctly" {
-  local output_text="LEARNING: type=pattern content=\"don't use var\""
-  extract_learnings "${output_text}" "${LEARNINGS}" "S-001" "tdd"
+  local log_file="${TEST_TMPDIR}/test.log"
+  printf '%s\n' 'LEARNING: {"type":"pattern","content":"don'"'"'t use var"}' > "${log_file}"
+  extract_learnings "${log_file}" "${LEARNINGS}" "S-001" "tdd"
   run jq -r '.content' "${LEARNINGS}"
   [ "$status" -eq 0 ]
   [ "$output" = "don't use var" ]
@@ -135,19 +137,23 @@ setup() {
   promote_to_conventions "${CONVENTIONS}" "pattern" "${special_content}"
   # 2回目は重複なし
   promote_to_conventions "${CONVENTIONS}" "pattern" "${special_content}"
-  run grep -cF "${special_content}" "${CONVENTIONS}"
+  local state_file
+  state_file="$(dirname "${CONVENTIONS}")/conventions-state.jsonl"
+  run grep -cF "${special_content}" "${state_file}"
   [ "$status" -eq 0 ]
   [ "$output" -eq 1 ]
 }
 
-# TQ-29: promote_to_conventions — 既存ファイルに ENTRY がある状態で同一 content を追加しても重複しない
+# TQ-29: promote_to_conventions — 既存エントリがある状態で同一 content を追加しても重複しない
 @test "TQ-29: promote_to_conventions: does not duplicate when conventions.md already has the entry" {
-  # 先に1件昇格させて conventions.md を作る
+  # 先に1件昇格させて conventions-state.jsonl を作る
   promote_to_conventions "${CONVENTIONS}" "pattern" "existing entry"
   # 同じ content を再度追加
   promote_to_conventions "${CONVENTIONS}" "pattern" "existing entry"
-  # grep -c で出現回数を確認（ENTRY 行が 1 件のみのはず）
-  run grep -c "existing entry" "${CONVENTIONS}"
+  # conventions-state.jsonl の出現回数を確認（1 件のみのはず）
+  local state_file
+  state_file="$(dirname "${CONVENTIONS}")/conventions-state.jsonl"
+  run grep -c "existing entry" "${state_file}"
   [ "$status" -eq 0 ]
   [ "$output" -eq 1 ]
 }

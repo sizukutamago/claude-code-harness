@@ -17,7 +17,7 @@ setup() {
   cat > "${MOCK_DIR}/claude" << 'MOCK'
 #!/bin/bash
 echo "Implementation done."
-echo 'LEARNING: type=pattern content="test pattern"'
+echo 'LEARNING: {"type":"pattern","content":"test pattern"}'
 exit 0
 MOCK
   chmod +x "${MOCK_DIR}/claude"
@@ -109,7 +109,7 @@ for arg in "\$@"; do
     break
   fi
 done
-echo 'LEARNING: type=pattern content="test pattern"'
+echo 'LEARNING: {"type":"pattern","content":"test pattern"}'
 exit 0
 MOCK
   chmod +x "${MOCK_DIR}/claude"
@@ -197,7 +197,7 @@ GATE
 count=\$(cat "${ATTEMPT_COUNT}")
 count=\$((count + 1))
 echo "\${count}" > "${ATTEMPT_COUNT}"
-echo 'LEARNING: type=pattern content="fail pattern"'
+echo 'LEARNING: {"type":"pattern","content":"fail pattern"}'
 exit 1
 MOCK
   chmod +x "${MOCK_DIR}/claude"
@@ -220,7 +220,7 @@ MOCK
 @test "story status becomes failed after 3 step failures" {
   cat > "${MOCK_DIR}/claude" << 'MOCK'
 #!/bin/bash
-echo 'LEARNING: type=pattern content="fail"'
+echo 'LEARNING: {"type":"pattern","content":"fail"}'
 exit 1
 MOCK
   chmod +x "${MOCK_DIR}/claude"
@@ -242,7 +242,7 @@ MOCK
 @test "dependents are skipped when a story fails" {
   cat > "${MOCK_DIR}/claude" << 'MOCK'
 #!/bin/bash
-echo 'LEARNING: type=pattern content="fail"'
+echo 'LEARNING: {"type":"pattern","content":"fail"}'
 exit 1
 MOCK
   chmod +x "${MOCK_DIR}/claude"

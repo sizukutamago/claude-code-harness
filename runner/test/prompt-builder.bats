@@ -94,11 +94,11 @@ setup() {
   [[ "$output" == *"/simplify"* ]]
 }
 
-# TC-9: プロンプトに LEARNING 出力指示が含まれる
+# TC-9: プロンプトに LEARNING 出力指示が含まれる (JSONL フォーマット)
 @test "build_prompt: prompt contains LEARNING output instruction" {
   run build_prompt "${PLAN}" "${LEARNINGS}" "${CONVENTIONS}" "S-001" "tdd"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'LEARNING: type=pattern|gotcha|fix content="..."'* ]]
+  [[ "$output" == *'LEARNING: {"type":"pattern","content":"..."}'* ]]
 }
 
 # TC-10: conventions.md が存在しない場合もエラーにならない

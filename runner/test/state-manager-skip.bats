@@ -117,3 +117,56 @@ setup() {
   s001_attempts=$(echo "$output" | jq '.stories[] | select(.id=="S-001") | .attempts')
   [ "$s001_attempts" = "1" ]
 }
+
+# AC-SHOULD-2-1: pending/in_progress が残っている状態でのサマリに両フィールドが含まれる
+@test "generate_summary: includes pending and in_progress fields in summary" {
+  update_status "${PLAN}" "S-001" "in_progress"
+  # S-002, S-003 は pending のまま
+  run generate_summary "${PLAN}" "run-abc"
+  [ "$status" -eq 0 ]
+  pending=$(echo "$output" | jq -r '.pending')
+  in_progress=$(echo "$output" | jq -r '.in_progress')
+  [ "$pending" = "2" ]
+  [ "$in_progress" = "1" ]
+}
+
+# AC-SHOULD-2-2: pending=0/in_progress=0 の場合もフィールドが存在する
+@test "generate_summary: pending and in_progress fields exist even when zero" {
+  update_status "${PLAN}" "S-001" "completed"
+  update_status "${PLAN}" "S-002" "completed"
+  update_status "${PLAN}" "S-003" "completed"
+  run generate_summary "${PLAN}" "run-abc"
+  [ "$status" -eq 0 ]
+  pending=$(echo "$output" | jq -r '.pending')
+  in_progress=$(echo "$output" | jq -r '.in_progress')
+  [ "$pending" = "0" ]
+  [ "$in_progress" = "0" ]
+}
+
+# ---------------------------------------------------------------------------
+# record_failed_reason
+# ---------------------------------------------------------------------------
+
+# AC-SHOULD-3-1: failed ストーリーに failed_reason が記録される
+@test "record_failed_reason: records failed_reason for the specified story" {
+  record_failed_reason "${PLAN}" "S-001" "Step tdd failed after max attempts"
+  run jq -r '.stories[] | select(.id=="S-001") | .failed_reason' "${PLAN}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "Step tdd failed after max attempts" ]
+}
+
+# AC-SHOULD-3-2: failed_reason を記録しても skipped_reason は null のまま
+@test "record_failed_reason: does not affect skipped_reason" {
+  record_failed_reason "${PLAN}" "S-001" "Step tdd failed after max attempts"
+  run jq -r '.stories[] | select(.id=="S-001") | .skipped_reason' "${PLAN}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "null" ]
+}
+
+# AC-SHOULD-3-3: skipped ストーリーに skipped_reason を記録しても failed_reason は null のまま
+@test "record_skip_reason: does not affect failed_reason" {
+  record_skip_reason "${PLAN}" "S-001" "Dependency S-000 failed"
+  run jq -r '.stories[] | select(.id=="S-001") | .failed_reason' "${PLAN}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "null" ]
+}

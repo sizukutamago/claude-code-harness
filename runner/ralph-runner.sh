@@ -52,6 +52,26 @@ parse_args() {
 }
 
 # ---------------------------------------------------------------------------
+# validate_plan <plan_file>
+#   plan.json の全ストーリー ID が ^[A-Za-z0-9_-]+$ にマッチすることを検証する。
+#   空文字・不正な ID が存在する場合はエラーメッセージを stderr に出力して exit 1 する。
+# ---------------------------------------------------------------------------
+validate_plan() {
+  local plan_file="$1"
+  # jq で正規表現に合わない ID（空文字を含む）を抽出する
+  local invalid_count
+  invalid_count=$(jq -r '[.stories[].id | select(test("^[A-Za-z0-9_-]+$") | not)] | length' "${plan_file}")
+  if [ "${invalid_count}" -gt 0 ]; then
+    local invalid_ids
+    invalid_ids=$(jq -r '.stories[].id | select(test("^[A-Za-z0-9_-]+$") | not)' "${plan_file}")
+    echo "Error: invalid story IDs in plan.json:" >&2
+    echo "${invalid_ids}" >&2
+    echo "Story IDs must match ^[A-Za-z0-9_-]+\$" >&2
+    exit 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # --dry-run: 実行計画を表示する
 # ---------------------------------------------------------------------------
 show_dry_run() {
@@ -116,7 +136,7 @@ run_story_step() {
     set -e
 
     # LEARNING 抽出
-    extract_learnings "$(cat "${log_file}")" "${learnings_file}" "${story_id}" "${step}"
+    extract_learnings "${log_file}" "${learnings_file}" "${story_id}" "${step}"
 
     # claude が失敗した場合もリトライ
     if [ "${claude_exit}" -ne 0 ]; then
@@ -164,6 +184,17 @@ main() {
     exit 1
   fi
 
+  # story_id のバリデーション（パストラバーサル防止）
+  validate_plan "${plan_file}"
+
+  # gates_dir を絶対パスに正規化する（シンボリックリンク・相対パスを解決）
+  if [ -d "${gates_dir}" ]; then
+    gates_dir="$(cd "${gates_dir}" && pwd -P)"
+  else
+    echo "Error: gates directory not found: ${gates_dir}" >&2
+    exit 1
+  fi
+
   # RUN_ID を生成
   local run_id
   run_id="run-$(date +%Y%m%d-%H%M%S)"
@@ -208,7 +239,7 @@ main() {
       else
         # ステップ失敗
         update_status "${plan_file}" "${story_id}" "failed"
-        record_skip_reason "${plan_file}" "${story_id}" "Step ${step} failed after max attempts"
+        record_failed_reason "${plan_file}" "${story_id}" "Step ${step} failed after max attempts"
         skip_dependents "${plan_file}" "${story_id}"
         story_failed=1
         break

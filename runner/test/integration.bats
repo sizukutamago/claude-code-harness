@@ -24,7 +24,7 @@ count=\$(cat "${counter_file}")
 count=\$((count + 1))
 echo "\${count}" > "${counter_file}"
 echo "Implementation done."
-echo "LEARNING: type=pattern content=\"claude call \${count}\""
+echo "LEARNING: {\"type\":\"pattern\",\"content\":\"claude call \${count}\"}"
 exit 0
 MOCK
       ;;

@@ -25,6 +25,10 @@ build_prompt() {
   local story_id="$4"
   local step="$5"
 
+  # plan.json から設計書パスを取得する
+  local design_ref
+  design_ref="$(jq -r '.source.design // empty' "${plan_file}" 2>/dev/null || true)"
+
   # plan.json からストーリー情報を取得する
   local title
   title="$(jq -r --arg sid "${story_id}" \
@@ -77,6 +81,11 @@ build_prompt() {
   printf 'Acceptance Criteria:\n'
   printf '%s\n' "${ac_lines}"
   printf '\n'
+  if [ -n "${design_ref}" ]; then
+    printf '## Design Reference\n'
+    printf 'See: %s\n' "${design_ref}"
+    printf '\n'
+  fi
   printf '## Project Conventions\n'
   printf '%s\n' "${conventions_content}"
   printf '\n'
@@ -90,6 +99,8 @@ build_prompt() {
   printf '\n'
   printf '## Instruction\n'
   printf 'Run /%s to implement this story.\n' "${step}"
-  printf 'When done, output your learnings in the following format:\n'
-  printf 'LEARNING: type=pattern|gotcha|fix content="..."\n'
+  printf 'When done, output your learnings in the following format (one per line):\n'
+  printf 'LEARNING: {"type":"pattern","content":"..."}\n'
+  printf '\n'
+  printf 'Valid type values: pattern, gotcha, fix\n'
 }

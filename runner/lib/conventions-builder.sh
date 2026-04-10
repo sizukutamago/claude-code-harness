@@ -9,27 +9,43 @@ _CONVENTIONS_BUILDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_CONVENTIONS_BUILDER_DIR}/state-manager.sh"
 
 # ---------------------------------------------------------------------------
+# _conventions_state_file <conventions_file>
+#   conventions_file と同じディレクトリの conventions-state.jsonl パスを返す。
+# ---------------------------------------------------------------------------
+_conventions_state_file() {
+  local conventions_file="$1"
+  printf '%s/conventions-state.jsonl' "$(dirname "${conventions_file}")"
+}
+
+# ---------------------------------------------------------------------------
 # promote_to_conventions <conventions_file> <type> <content>
-#   conventions.md にエントリを追記する。
-#   既に同じ content が conventions.md に存在する場合は追加しない（冪等）。
+#   conventions-state.jsonl にエントリを追記する（重複チェックあり）。
+#   既に同じ type + content が存在する場合は追加しない（冪等）。
 # ---------------------------------------------------------------------------
 promote_to_conventions() {
   local conventions_file="$1"
   local type="$2"
   local content="$3"
 
-  # 既に同じ content が存在する場合はスキップ（冪等）
-  if [ -f "${conventions_file}" ] && grep -qF "${content}" "${conventions_file}"; then
-    return 0
+  local state_file
+  state_file="$(_conventions_state_file "${conventions_file}")"
+
+  # 既に同じ type + content が存在する場合はスキップ（冪等）
+  if [ -f "${state_file}" ]; then
+    local exists
+    exists="$(jq -r \
+      --arg type "${type}" \
+      --arg content "${content}" \
+      'select(.type == $type and .content == $content) | "found"' \
+      "${state_file}" | head -1)"
+    if [ "${exists}" = "found" ]; then
+      return 0
+    fi
   fi
 
-  # ファイルが存在しない場合は作成する
-  if [ ! -f "${conventions_file}" ]; then
-    touch "${conventions_file}"
-  fi
-
-  # type と content を追記する（後で build_conventions_md で整形するための raw 形式）
-  printf 'ENTRY type=%s content="%s"\n' "${type}" "${content}" >> "${conventions_file}"
+  # conventions-state.jsonl に JSONL で追記する
+  jq -cn --arg type "${type}" --arg content "${content}" \
+    '{type: $type, content: $content}' >> "${state_file}"
 }
 
 # ---------------------------------------------------------------------------
@@ -89,7 +105,7 @@ check_and_promote() {
     return 0
   fi
 
-  # 昇格するエントリを conventions.md に追記する
+  # 昇格するエントリを conventions-state.jsonl に追記する（重複チェックあり）
   while IFS= read -r entry; do
     local type content
     type="$(printf '%s' "${entry}" | jq -r '.type')"
@@ -97,20 +113,11 @@ check_and_promote() {
     promote_to_conventions "${conventions_file}" "${type}" "${content}"
   done < <(printf '%s' "${promoted_entries}" | jq -c '.[]')
 
-  # conventions.md を整形して書き出す
-  # 既存の conventions.md からエントリを読み込み、JSON 配列に変換する
+  # conventions-state.jsonl 全体を読んで conventions.md を再生成する（全エントリが保持される）
+  local state_file
+  state_file="$(_conventions_state_file "${conventions_file}")"
   local all_entries
-  all_entries="$(grep '^ENTRY type=' "${conventions_file}" | while IFS= read -r raw_entry; do
-    local t c
-    # type= の値を抽出する
-    t="${raw_entry#*type=}"
-    t="${t%% *}"
-    # content="..." の値を抽出する
-    c="${raw_entry#*content=\"}"
-    c="${c%\"}"
-    jq -cn --arg type "${t}" --arg content "${c}" '{type: $type, content: $content}'
-  done | jq -s '.')"
-
+  all_entries="$(jq -s '.' "${state_file}")"
   build_conventions_md "${conventions_file}" "${all_entries}"
 
   # 昇格したエントリを learnings.jsonl から削除し archive に移動する。

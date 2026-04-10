@@ -21,7 +21,8 @@
       "quality_gates": ["test", "typecheck"],
       "files_touched": [],
       "completed_steps": [],
-      "skipped_reason": null
+      "skipped_reason": null,
+      "failed_reason": null
     },
     {
       "id": "S-002",
@@ -35,7 +36,8 @@
       "quality_gates": ["test", "typecheck"],
       "files_touched": [],
       "completed_steps": [],
-      "skipped_reason": null
+      "skipped_reason": null,
+      "failed_reason": null
     },
     {
       "id": "S-003",
@@ -49,7 +51,8 @@
       "quality_gates": ["test", "typecheck", "e2e"],
       "files_touched": [],
       "completed_steps": [],
-      "skipped_reason": null
+      "skipped_reason": null,
+      "failed_reason": null
     }
   ]
 }

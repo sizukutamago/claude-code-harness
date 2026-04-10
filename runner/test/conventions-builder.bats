@@ -90,12 +90,14 @@ setup() {
 }
 
 # ---------------------------------------------------------------------------
-# AC-5: promote_to_conventions — conventions.md にエントリが追記される
+# AC-5: promote_to_conventions — conventions-state.jsonl にエントリが追記される
 # ---------------------------------------------------------------------------
-@test "promote_to_conventions: appends entry to conventions.md" {
+@test "promote_to_conventions: appends entry to conventions-state.jsonl" {
   promote_to_conventions "${CONVENTIONS}" "pattern" "新しい規約エントリ"
 
-  run grep -F "新しい規約エントリ" "${CONVENTIONS}"
+  local state_file
+  state_file="$(dirname "${CONVENTIONS}")/conventions-state.jsonl"
+  run grep -F "新しい規約エントリ" "${state_file}"
   [ "$status" -eq 0 ]
 }
 
@@ -106,7 +108,9 @@ setup() {
   promote_to_conventions "${CONVENTIONS}" "pattern" "重複しないエントリ"
   promote_to_conventions "${CONVENTIONS}" "pattern" "重複しないエントリ"
 
-  run grep -c "重複しないエントリ" "${CONVENTIONS}"
+  local state_file
+  state_file="$(dirname "${CONVENTIONS}")/conventions-state.jsonl"
+  run grep -c "重複しないエントリ" "${state_file}"
   [ "$status" -eq 0 ]
   [ "$output" -eq 1 ]
 }
@@ -173,5 +177,40 @@ setup() {
   [ "$status" -eq 0 ]
 
   run grep -F "初回生成エントリ" "${CONVENTIONS}"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# AC-10: 2回目の昇格サイクルで既存 conventions エントリが保持される（MUST-B の重要テスト）
+# ---------------------------------------------------------------------------
+@test "check_and_promote: second promotion cycle preserves existing conventions entries" {
+  # 1回目: "first entry" を3件追加して昇格させる
+  printf '%s\n' \
+    '{"date":"2026-04-01","story":"S-001","step":"tdd","type":"pattern","content":"first entry"}' \
+    '{"date":"2026-04-02","story":"S-002","step":"tdd","type":"pattern","content":"first entry"}' \
+    '{"date":"2026-04-03","story":"S-003","step":"tdd","type":"pattern","content":"first entry"}' \
+    > "${LEARNINGS}"
+
+  check_and_promote "${LEARNINGS}" "${ARCHIVE}" "${CONVENTIONS}"
+
+  # "first entry" が conventions.md に昇格していること
+  run grep -F "first entry" "${CONVENTIONS}"
+  [ "$status" -eq 0 ]
+
+  # 2回目: "second entry" を3件追加して昇格させる
+  printf '%s\n' \
+    '{"date":"2026-04-04","story":"S-001","step":"tdd","type":"pattern","content":"second entry"}' \
+    '{"date":"2026-04-05","story":"S-002","step":"tdd","type":"pattern","content":"second entry"}' \
+    '{"date":"2026-04-06","story":"S-003","step":"tdd","type":"pattern","content":"second entry"}' \
+    > "${LEARNINGS}"
+
+  check_and_promote "${LEARNINGS}" "${ARCHIVE}" "${CONVENTIONS}"
+
+  # "second entry" が conventions.md に存在すること
+  run grep -F "second entry" "${CONVENTIONS}"
+  [ "$status" -eq 0 ]
+
+  # "first entry" が2回目の昇格後も conventions.md に残っていること（回帰テスト）
+  run grep -F "first entry" "${CONVENTIONS}"
   [ "$status" -eq 0 ]
 }
