@@ -8,25 +8,6 @@ _PROMPT_BUILDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_PROMPT_BUILDER_DIR}/state-manager.sh"
 
 # ---------------------------------------------------------------------------
-# _step_to_skill <step>
-#   step 名を対応する skill コマンドにマッピングして stdout に出力する。
-#   例: tdd -> /tdd
-# ---------------------------------------------------------------------------
-_step_to_skill() {
-  local step="$1"
-  case "${step}" in
-    tdd)           echo "/tdd" ;;
-    simplify)      echo "/simplify" ;;
-    test-quality)  echo "/test-quality" ;;
-    code-review)   echo "/code-review" ;;
-    verification)  echo "/verification" ;;
-    cleanup)       echo "/cleanup" ;;
-    commit)        echo "/commit" ;;
-    *)             echo "/${step}" ;;
-  esac
-}
-
-# ---------------------------------------------------------------------------
 # build_prompt <plan_file> <learnings_file> <conventions_file> <story_id> <step>
 #   指定ストーリーと実行ステップに対応するプロンプト文字列を stdout に出力する。
 #
@@ -85,10 +66,6 @@ build_prompt() {
     learnings_content="(no learnings yet)"
   fi
 
-  # step -> skill マッピング
-  local skill
-  skill="$(_step_to_skill "${step}")"
-
   # プロンプトを組み立てて出力する
   printf 'You are executing story %s step [%s].\n' "${story_id}" "${step}"
   printf '\n'
@@ -112,7 +89,7 @@ build_prompt() {
   fi
   printf '\n'
   printf '## Instruction\n'
-  printf 'Run %s to implement this story.\n' "${skill}"
+  printf 'Run /%s to implement this story.\n' "${step}"
   printf 'When done, output your learnings in the following format:\n'
   printf 'LEARNING: type=pattern|gotcha|fix content="..."\n'
 }

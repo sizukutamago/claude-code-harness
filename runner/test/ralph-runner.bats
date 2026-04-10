@@ -298,6 +298,12 @@ MOCK
     --runs-dir "${RUNS_DIR}"
   [ "$status" -eq 0 ]
 
-  # learnings.jsonl に "test pattern" が追記されていること
-  grep -q "test pattern" "${LEARNINGS_FILE}"
+  # "test pattern" が learnings パイプラインのいずれかに存在すること。
+  # 3回以上出現すると check_and_promote が learnings-archive.jsonl に移動し、
+  # さらに conventions.md に昇格する（Hot 層）。
+  local archive_file
+  archive_file="$(dirname "${LEARNINGS_FILE}")/learnings-archive.jsonl"
+  grep -q "test pattern" "${LEARNINGS_FILE}" \
+    || grep -q "test pattern" "${archive_file}" \
+    || grep -q "test pattern" "${CONVENTIONS_FILE}"
 }

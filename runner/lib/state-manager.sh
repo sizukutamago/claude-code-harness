@@ -31,16 +31,18 @@ next_ready_story() {
 }
 
 # ---------------------------------------------------------------------------
-# _jq_update_story <plan_file> <jq_filter>
+# _jq_update_plan <plan_file> <jq_filter> [jq_args...]
 #   plan.json を jq フィルターで更新し、tmpfile 経由で上書きする。
-#   内部ユーティリティ。$1=plan_file, $2=jq filter string
+#   jq_args には --arg / --argjson 等を渡せる。ユーザー入力値は必ず
+#   --arg 経由で渡して jq 構文インジェクションを防ぐこと。
 # ---------------------------------------------------------------------------
-_jq_update_story() {
+_jq_update_plan() {
   local plan_file="$1"
   local jq_filter="$2"
+  shift 2
   local tmpfile
   tmpfile="$(mktemp "${TMPDIR:-/tmp}/plan-update.XXXXXX")"
-  jq "${jq_filter}" "${plan_file}" > "${tmpfile}" && mv "${tmpfile}" "${plan_file}"
+  jq "$@" "${jq_filter}" "${plan_file}" > "${tmpfile}" && mv "${tmpfile}" "${plan_file}"
 }
 
 # ---------------------------------------------------------------------------
@@ -52,8 +54,9 @@ update_status() {
   local plan_file="$1"
   local story_id="$2"
   local new_status="$3"
-  _jq_update_story "${plan_file}" \
-    ".stories |= map(if .id == \"${story_id}\" then .status = \"${new_status}\" else . end)"
+  _jq_update_plan "${plan_file}" \
+    '.stories |= map(if .id == $sid then .status = $val else . end)' \
+    --arg sid "${story_id}" --arg val "${new_status}"
 }
 
 # ---------------------------------------------------------------------------
@@ -64,8 +67,9 @@ update_current_step() {
   local plan_file="$1"
   local story_id="$2"
   local step="$3"
-  _jq_update_story "${plan_file}" \
-    ".stories |= map(if .id == \"${story_id}\" then .current_step = \"${step}\" else . end)"
+  _jq_update_plan "${plan_file}" \
+    '.stories |= map(if .id == $sid then .current_step = $val else . end)' \
+    --arg sid "${story_id}" --arg val "${step}"
 }
 
 # ---------------------------------------------------------------------------
@@ -77,13 +81,14 @@ add_completed_step() {
   local plan_file="$1"
   local story_id="$2"
   local step="$3"
-  _jq_update_story "${plan_file}" \
-    ".stories |= map(
-      if .id == \"${story_id}\"
-      then .completed_steps |= (if index(\"${step}\") then . else . + [\"${step}\"] end)
+  _jq_update_plan "${plan_file}" \
+    '.stories |= map(
+      if .id == $sid
+      then .completed_steps |= (if index($val) then . else . + [$val] end)
       else .
       end
-    )"
+    )' \
+    --arg sid "${story_id}" --arg val "${step}"
 }
 
 # ---------------------------------------------------------------------------
@@ -95,13 +100,14 @@ increment_step_attempts() {
   local plan_file="$1"
   local story_id="$2"
   local step="$3"
-  _jq_update_story "${plan_file}" \
-    ".stories |= map(
-      if .id == \"${story_id}\"
-      then (.step_attempts[\"${step}\"] |= (. // 0) + 1) | (.attempts |= . + 1)
+  _jq_update_plan "${plan_file}" \
+    '.stories |= map(
+      if .id == $sid
+      then (.step_attempts[$val] |= (. // 0) + 1) | (.attempts |= . + 1)
       else .
       end
-    )"
+    )' \
+    --arg sid "${story_id}" --arg val "${step}"
 }
 
 # ---------------------------------------------------------------------------
@@ -112,8 +118,9 @@ record_skip_reason() {
   local plan_file="$1"
   local story_id="$2"
   local reason="$3"
-  _jq_update_story "${plan_file}" \
-    ".stories |= map(if .id == \"${story_id}\" then .skipped_reason = \"${reason}\" else . end)"
+  _jq_update_plan "${plan_file}" \
+    '.stories |= map(if .id == $sid then .skipped_reason = $val else . end)' \
+    --arg sid "${story_id}" --arg val "${reason}"
 }
 
 # ---------------------------------------------------------------------------
@@ -298,18 +305,10 @@ archive_learnings() {
   local tmpfile
   tmpfile="$(mktemp "${TMPDIR:-/tmp}/learnings-update.XXXXXX")"
 
-  # story_id に一致するエントリを archive_file に追記し、
-  # それ以外を tmpfile に書き出して learnings_file を置き換える
-  while IFS= read -r line; do
-    [ -z "${line}" ] && continue
-    local story
-    story="$(printf '%s' "${line}" | jq -r '.story' 2>/dev/null || true)"
-    if [ "${story}" = "${story_id}" ]; then
-      printf '%s\n' "${line}" >> "${archive_file}"
-    else
-      printf '%s\n' "${line}" >> "${tmpfile}"
-    fi
-  done < "${learnings_file}"
+  # 1回の jq 呼び出しで該当エントリを archive に追記し、
+  # もう1回の jq 呼び出しで残りを tmpfile に書き出す。
+  jq -c --arg sid "${story_id}" 'select(.story == $sid)' "${learnings_file}" >> "${archive_file}"
+  jq -c --arg sid "${story_id}" 'select(.story != $sid)' "${learnings_file}" > "${tmpfile}"
 
   mv "${tmpfile}" "${learnings_file}"
 }

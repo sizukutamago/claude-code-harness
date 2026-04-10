@@ -113,28 +113,22 @@ check_and_promote() {
 
   build_conventions_md "${conventions_file}" "${all_entries}"
 
-  # 昇格したエントリを learnings.jsonl から削除し archive に移動する
-  # （story_id ベースではなく type+content ベースで削除する）
+  # 昇格したエントリを learnings.jsonl から削除し archive に移動する。
+  # type+content ベースで振り分ける（story_id は使わない）。
   local tmpfile
   tmpfile="$(mktemp "${TMPDIR:-/tmp}/learnings-update.XXXXXX")"
 
-  while IFS= read -r line; do
-    [ -z "${line}" ] && continue
-    # 昇格した type+content の組み合わせかどうかを確認する
-    local is_promoted
-    is_promoted="$(printf '%s' "${line}" | jq -r --argjson promoted "${promoted_entries}" '
-      . as $entry |
-      if ($promoted | map(select(.type == $entry.type and .content == $entry.content)) | length) > 0
-      then "true"
-      else "false"
-      end
-    ')"
-    if [ "${is_promoted}" = "true" ]; then
-      printf '%s\n' "${line}" >> "${archive_file}"
-    else
-      printf '%s\n' "${line}" >> "${tmpfile}"
-    fi
-  done < "${learnings_file}"
+  # 昇格対象は archive に追記、それ以外は tmpfile に残す。
+  # 各エントリを1回の jq 呼び出しで振り分ける（N+1 を避ける）。
+  jq -c --argjson promoted "${promoted_entries}" '
+    . as $entry |
+    select($promoted | any(.type == $entry.type and .content == $entry.content))
+  ' "${learnings_file}" >> "${archive_file}"
+
+  jq -c --argjson promoted "${promoted_entries}" '
+    . as $entry |
+    select(($promoted | any(.type == $entry.type and .content == $entry.content)) | not)
+  ' "${learnings_file}" > "${tmpfile}"
 
   mv "${tmpfile}" "${learnings_file}"
 }

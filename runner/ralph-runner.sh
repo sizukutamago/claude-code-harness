@@ -106,23 +106,17 @@ run_story_step() {
     # ログファイルパス（run_log_dir は呼び出し元で作成済み）
     local log_file="${run_log_dir}/${story_id}-${step}-attempt${attempt}.log"
 
-    # claude -p 実行（exit code を確実に取得するため一時ファイルを使う）
-    local claude_exit=0
-    local exit_code_file
-    exit_code_file="$(mktemp "${TMPDIR:-/tmp}/claude-exit.XXXXXX")"
-    {
-      claude -p "${prompt}" \
-        --allowedTools "Edit,Write,Read,Grep,Glob,Bash,Agent" \
-        2>&1
-      echo "$?" > "${exit_code_file}"
-    } | tee "${log_file}" || true
-    claude_exit="$(cat "${exit_code_file}" 2>/dev/null || echo "0")"
-    rm -f "${exit_code_file}"
+    # claude -p 実行。PIPESTATUS[0] で claude の exit code を正確に取得する。
+    # set -e が pipeline 失敗で即終了しないよう一時的に無効化する。
+    set +e
+    claude -p "${prompt}" \
+      --allowedTools "Edit,Write,Read,Grep,Glob,Bash,Agent" \
+      2>&1 | tee "${log_file}"
+    local claude_exit="${PIPESTATUS[0]}"
+    set -e
 
     # LEARNING 抽出
-    local step_output
-    step_output="$(cat "${log_file}" 2>/dev/null || true)"
-    extract_learnings "${step_output}" "${learnings_file}" "${story_id}" "${step}"
+    extract_learnings "$(cat "${log_file}")" "${learnings_file}" "${story_id}" "${step}"
 
     # claude が失敗した場合もリトライ
     if [ "${claude_exit}" -ne 0 ]; then
@@ -131,18 +125,15 @@ run_story_step() {
       continue
     fi
 
-    # 品質ゲート（適用対象ステップのみ）
-    if should_run_gates "${step}"; then
-      if check_quality "${plan_file}" "${story_id}" "${step}" "${gates_dir}" "${run_log_dir}"; then
-        return 0
-      fi
-      # ゲート失敗 → learnings に記録してリトライ
-      record_learning "${learnings_file}" "${story_id}" "${step}" "retry" \
-        "Attempt ${attempt} failed: quality gate failed"
-    else
-      # 品質ゲート非適用 → 即成功
+    # 品質ゲート。check_quality 内部で should_run_gates を判定するため、
+    # 呼び出し側ではガードしない（判定ロジックを一箇所に集約）。
+    if check_quality "${plan_file}" "${story_id}" "${step}" "${gates_dir}" "${run_log_dir}"; then
       return 0
     fi
+
+    # ゲート失敗 → learnings に記録してリトライ
+    record_learning "${learnings_file}" "${story_id}" "${step}" "retry" \
+      "Attempt ${attempt} failed: quality gate failed"
   done
 
   return 1  # 3回失敗
