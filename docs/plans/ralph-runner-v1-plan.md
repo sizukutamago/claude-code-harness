@@ -1,7 +1,7 @@
 ---
-status: Approved
+status: Completed
 owner: sizukutamago
-last_updated: 2026-04-10
+last_updated: 2026-04-09
 ---
 
 # RALPH Runner v1 — 実装計画

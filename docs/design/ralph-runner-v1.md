@@ -99,7 +99,8 @@ runner/                              # 外部オーケストレーター
   plan.json                          # ストーリー状態 (NEW)
   learnings.jsonl                    # 学習メモリ — Warm 層 (NEW)
   learnings-archive.jsonl            # 学習アーカイブ — Cold 層 (NEW)
-  conventions.md                     # 蒸留済み規約 — Hot 層 (NEW)
+  conventions.md                     # 蒸留済み規約 — Hot 層, 人間可読 (NEW)
+  conventions-state.jsonl            # conventions SSOT — Hot 層, 機械可読 (NEW)
   runs/                              # 実行ログ (NEW)
     run-YYYYMMDD-HHMMSS/
       S-001-tdd.log                  # claude -p の出力
@@ -147,7 +148,8 @@ runner/                              # 外部オーケストレーター
       "quality_gates": ["test", "typecheck"],
       "files_touched": [],
       "completed_steps": [],
-      "skipped_reason": null
+      "skipped_reason": null,
+      "failed_reason": null
     },
     {
       "id": "S-002",
@@ -164,7 +166,8 @@ runner/                              # 外部オーケストレーター
       "quality_gates": ["test", "typecheck"],
       "files_touched": [],
       "completed_steps": [],
-      "skipped_reason": null
+      "skipped_reason": null,
+      "failed_reason": null
     },
     {
       "id": "S-003",
@@ -181,7 +184,8 @@ runner/                              # 外部オーケストレーター
       "quality_gates": ["test", "typecheck", "e2e"],
       "files_touched": [],
       "completed_steps": [],
-      "skipped_reason": null
+      "skipped_reason": null,
+      "failed_reason": null
     }
   ]
 }
@@ -205,6 +209,8 @@ pending → in_progress → completed
 - `["test", "typecheck", "e2e"]` — ブラウザ系の実装を含むストーリー
 - planning スキルでストーリー生成時に設定する
 
+> **実装時の改訂（2026-04-09）**: `failed_reason` フィールドを追加した（設計書初版では未記載）。`skipped_reason` と対称になるように、ストーリーが failed になった際に失敗したステップと理由を記録する。例: `"Step tdd failed after max attempts"`。
+
 ### learnings.jsonl スキーマ
 
 ```jsonl
@@ -226,9 +232,12 @@ learnings は3層に分離し、プロンプト注入量を制御する。
 
 | 層 | ファイル | サイズ | プロンプト注入 | 用途 |
 |---|---------|-------|-------------|------|
-| **Hot** | `conventions.md` | 小（数十行） | 常に全文 | 繰り返し出現するパターン・規約 |
+| **Hot** | `conventions.md` | 小（数十行） | 常に全文 | 繰り返し出現するパターン・規約（人間可読） |
+| **Hot (機械)** | `conventions-state.jsonl` | 小 | 注入しない | conventions.md のソースオブトゥルース（JSONL）。冪等な再生成に使用 |
 | **Warm** | `learnings.jsonl` | 中（最新分） | 関連ストーリーのみ | 直近の学習。まだ蒸留前 |
 | **Cold** | `learnings-archive.jsonl` | 大（全履歴） | 注入しない | 分析・振り返り用 |
+
+> **実装時の改訂（2026-04-09）**: `conventions-state.jsonl` を追加した。conventions.md は人間可読な Markdown だが、再生成時に冪等性を保つためのソースオブトゥルースとして JSONL 形式の機械可読ファイルを Hot 層に併置する。conventions.md は常に conventions-state.jsonl から再生成される（`build_conventions_md` 関数）。
 
 **ライフサイクル:**
 
@@ -291,11 +300,17 @@ Acceptance Criteria:
 
 ## Instruction
 Run /{SKILL} to implement this story.
-When done, output your learnings in the following format:
-LEARNING: type=pattern|gotcha|fix content="..."
+When done, output your learnings in the following format (one per line):
+LEARNING: {"type":"pattern","content":"..."}
+
+Valid type values: pattern, gotcha, fix
 ```
 
+> **実装時の改訂（2026-04-09）**: LEARNING 出力フォーマットを `type=X content="Y"` から `{"type":"X","content":"Y"}` JSONL に変更した（learnings.jsonl スキーマの改訂と連動）。
+
 **LEARNING 出力の解析**: claude -p の stdout から `LEARNING:` 行を grep で抽出し、learnings.jsonl に追記する。
+
+> **実装時の改訂（2026-04-09）**: LEARNING のフォーマットを変更した。設計書記載の `LEARNING: type=X content="Y"` 形式から `LEARNING: {"type":"X","content":"Y"}` (JSONL) 形式に変更。extract_learnings が jq でパースして type/content を検証する実装になったため、JSON フォーマットの方が堅牢かつシンプルだった。type の有効値は `pattern`, `gotcha`, `fix` に限定（`retry` はプログラム内部で自動記録するため Claude の出力には含めない）。
 
 ### 品質ゲート
 
@@ -506,6 +521,24 @@ RALPH ループ内の commit ステップは人間承認なしの自動コミッ
 - plan.json は jq で十分人間可読
 - `ralph-runner.sh --dry-run` で実行計画のプレビューを提供する
 - planning スキルの出力先を `docs/plans/{slug}-plan.md` から `.claude/harness/plan.json` に変更
+
+### validate_plan による story_id のバリデーション
+
+ralph-runner.sh 起動時に plan.json の全ストーリー ID を `^[A-Za-z0-9_-]+$` の正規表現で検証する（`validate_plan` 関数）。不正な ID が存在する場合は起動を拒否する。理由:
+
+- story_id はログファイルパス（`${story_id}-${step}-attempt${attempt}.log`）に直接展開されるため、シェルインジェクション・パストラバーサルを防ぐ必要がある
+- セキュリティルールの「ユーザー入力をそのままファイルパスに使わない」に準拠
+
+### gates_dir の realpath 正規化
+
+ralph-runner.sh 起動時に gates_dir を `cd "${gates_dir}" && pwd -P` で絶対パスに正規化する。理由:
+
+- シンボリックリンクや相対パスが混在しても、ゲートスクリプトのパス解決が安定する
+- quality-gate.sh 内でのパス展開が一貫して動作する
+
+### generate_summary の pending / in_progress 集計
+
+サマリ JSON に `pending` と `in_progress` のカウントを追加した。設計書初版では completed/failed/skipped のみを集計する想定だったが、実装時に「途中で中断した場合にどのストーリーが残っているか」が見えない問題があったため追加した。
 
 ## 未解決事項
 

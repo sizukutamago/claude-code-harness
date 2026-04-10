@@ -26,3 +26,6 @@ Thumbs.db
 # Node
 node_modules/
 eval/workdirs/
+
+# Playwright test results
+test-results/
