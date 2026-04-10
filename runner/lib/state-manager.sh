@@ -241,8 +241,8 @@ extract_learnings() {
       continue
     fi
 
-    # content が取得できなかった場合はスキップする
-    if [ -z "${content}" ] && [[ "${payload}" != *'content=""'* ]]; then
+    # content が空の場合はスキップする（フォーマット不正）
+    if [ -z "${content}" ]; then
       continue
     fi
 
