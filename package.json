@@ -7,7 +7,8 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "bats runner/test/",
+    "test:runner": "bats runner/test/"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,9 @@
   "homepage": "https://github.com/sizukutamago/claude-code-harness#readme",
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.81.0",
+    "bats": "^1.13.0",
+    "bats-assert": "^2.2.4",
+    "bats-support": "^0.3.0",
     "promptfoo": "^0.121.3",
     "yaml": "^2.8.3"
   }

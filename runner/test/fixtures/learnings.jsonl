@@ -1,0 +1,4 @@
+{"date":"2026-04-10","story":"S-001","step":"tdd","type":"pattern","content":"Hono の router は app.route() でマウントする"}
+{"date":"2026-04-10","story":"S-001","step":"tdd","type":"gotcha","content":"D1 は INSERT OR IGNORE をサポートしない"}
+{"date":"2026-04-10","story":"S-001","step":"code-review","type":"fix","content":"エラーレスポンスは HTTPException を使う"}
+{"date":"2026-04-10","story":"S-002","step":"tdd","type":"pattern","content":"JWT の秘密鍵は環境変数から取得する"}
