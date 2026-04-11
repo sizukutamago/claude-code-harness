@@ -1,6 +1,6 @@
 # ハーネスエンジニアリング基盤 — アーキテクチャ設計書
 
-**Date:** 2026-03-28（初版）、2026-04-05（実装同期改訂）
+**Date:** 2026-03-28（初版）、2026-04-05（実装同期改訂）、2026-04-12（brainstorming→design・スキル数・フック数・エージェント数を実装同期）
 **Status:** Living Document
 **Author:** sizukutamago + Claude
 
@@ -41,11 +41,10 @@
      │  何を作るか？なぜ？  │                                 │
      │  📄 requirements/   │                                 │
      ↓                     │                                 │
-[2]  設計・ブレスト ────────┤  ← ループ①: 要件⇔設計の往復     │
+[2]  設計 ──────────────────┤  ← ループ①: 要件⇔設計の往復     │
      │  どう作るか？        │    「要件に曖昧さ発見 → [1]へ」  │
-     │  📄 specs/          │                                 │
-     │  📄 adr/            │                                 │
-     │  📄 decisions/      │                                 │
+     │  📄 docs/design/    │                                 │
+     │  📄 docs/decisions/ │                                 │
      ↓                     │                                 │
 [3]  計画 ─────────────────┘                                 │
      │  タスク分解                                            │
@@ -75,7 +74,7 @@
      ↓
 [10] 整理・クリーンアップ
      │  📄 一時ドキュメントの削除
-     │  📄 specs/plans のステータス更新
+     │  📄 docs/design, docs/plans のステータス更新
      │  📄 ドキュメントと実装の整合性チェック
      │  🪝 post-verification: 不要ファイル検出
      ↓
@@ -94,7 +93,7 @@
 | # | ステップ | skill | rule | agent | hook | doc | eval |
 |---|---------|-------|------|-------|------|-----|------|
 | 1 | 要件理解 | requirements | - | requirements-analyst | - | requirements/ | - |
-| 2 | 設計・ブレスト | brainstorming | - | brainstormer, design-reviewer, doc-maintainer | - | specs/, adr/, decisions/ | - |
+| 2 | 設計 | design | - | design-reviewer, doc-maintainer | - | docs/design/, docs/decisions/ | - |
 | 3 | 計画 | planning | - | planner, plan-reviewer | - | plans/ | - |
 | 4 | 実装 | tdd | coding-style, security | implementer, test-runner | PreToolUse | - | - |
 | 5 | テスト | tdd (継続) | testing | implementer, test-runner | PostToolUse | - | - |
@@ -136,7 +135,7 @@
 | タイミング | 承認対象 | パターン |
 |-----------|---------|---------|
 | [1] 要件確定時 | 要件定義（requirements/） | AIが構造化 → 人間が承認 |
-| [2] 設計完了時 | 設計仕様（specs/） | AIがセクション提示 → 人間が各セクション承認 |
+| [2] 設計完了時 | 設計仕様（docs/design/） | AIがセクション提示 → 人間が各セクション承認 |
 | [3] 計画完了時 | 実装計画（plans/） | AIがタスク分解 → 人間が承認 |
 | [11] コミット前 | 変更全体 | コーディネーターが要約 → 人間が承認 |
 
@@ -192,11 +191,11 @@
 
 ```
 .claude/                                   # テンプレート本体（Copier で導入先に展開）
-├── skills/                                # ワークフロースキル（11個）+ ユーティリティ（3個）
+├── skills/                                # ワークフロースキル（12個）+ ユーティリティ（4個）+ モジュール（1個）
 │   ├── requirements/
 │   │   └── SKILL.md                       #   要件のヒアリング・構造化
-│   ├── brainstorming/
-│   │   └── SKILL.md                       #   設計前の洗練
+│   ├── design/
+│   │   └── SKILL.md                       #   設計レビュー・要件カバレッジ検証
 │   ├── planning/
 │   │   └── SKILL.md                       #   タスク分解計画
 │   ├── tdd/
@@ -215,12 +214,16 @@
 │   │   └── SKILL.md                       #   変更確認・コミットメッセージ生成・人間承認
 │   ├── retrospective/
 │   │   └── SKILL.md                       #   セッション振り返り・自己改善提案
+│   ├── roadmap/
+│   │   └── SKILL.md                       #   大規模タスクのフェーズ分割（Large のみ）
 │   ├── onboarding/
 │   │   └── SKILL.md                       #   ハーネスの使い方を対話的に教える
 │   ├── setup-references/
 │   │   └── SKILL.md                       #   外部参照先を docs/references.md に整理
-│   └── harness-contribute/
-│       └── SKILL.md                       #   プロジェクト側の改善をハーネスに還元
+│   ├── harness-contribute/
+│   │   └── SKILL.md                       #   プロジェクト側の改善をハーネスに還元
+│   └── start-workflow/
+│       └── SKILL.md                       #   ユースケース選択でワークフローを開始
 │
 ├── rules/                                 # 常時有効ルール（6個）
 │   ├── testing.md                         #   テスト方針
@@ -230,15 +233,14 @@
 │   ├── docs-structure.md                  #   ドキュメント配置・命名規則
 │   └── feedback-recording.md              #   ユーザ指摘の即時記録
 │
-├── agents/                                # 専門サブエージェント（18個 core + モジュール条件付き）
+├── agents/                                # 専門サブエージェント（20個 core + モジュール条件付き）
 │   ├── _shared/
 │   │   ├── completion-report-format.md    #   完了報告の共通フォーマット
 │   │   ├── review-report-format.md        #   レビュー共通報告フォーマット
 │   │   ├── status-definition.md           #   ステータス定義（DONE/DONE_WITH_CONCERNS/etc.）
 │   │   └── context-requirements.md        #   コンテキスト要件
 │   ├── requirements-analyst.md            #   要件の抽出・構造化（Opus）
-│   ├── brainstormer.md                    #   設計案生成（Opus）
-│   ├── design-reviewer.md                 #   設計仕様レビュー（Opus）
+│   ├── design-reviewer.md                 #   設計レビュー・要件カバレッジ検証（Opus）
 │   ├── planner.md                         #   タスク分解・実装計画（Opus）
 │   ├── plan-reviewer.md                   #   計画レビュー（Opus）
 │   ├── implementer.md                     #   TDD実装（Sonnet）
@@ -256,11 +258,14 @@
 │   └── roadmap-planner.md                 #   大規模タスクのフェーズ分割（Opus）
 │
 ├── hooks/
-│   ├── hooks.json                         # イベント駆動の自動化
-│   └── scripts/                           # フックスクリプト
+│   └── scripts/                           # フックスクリプト（設定は .claude/settings.json の hooks キー）
 │       ├── coordinator-write-guard.mjs    #   PreToolUse: コーディネーターの書き込みブロック
 │       ├── secret-scanner.mjs             #   PreToolUse: シークレット検出
+│       ├── verification-gate.mjs          #   PreToolUse: git commit 前の検証証拠チェック
+│       ├── post-verification-scan.mjs     #   PreToolUse: 一時ファイル・デバッグコードの残存チェック
+│       ├── feedback-staleness-check.mjs   #   PreToolUse: 古い open フィードバックの警告
 │       ├── post-tool-log.mjs              #   PostToolUse: 操作ログ記録
+│       ├── workflow-event-logger.mjs      #   PostToolUse: サブエージェント ディスパッチのログ記録
 │       ├── permission-denied-recorder.mjs #   PermissionDenied: 拒否イベント記録
 │       └── session-end-retrospective.mjs  #   SessionEnd: セッション振り返りリマインダー
 │
@@ -496,10 +501,8 @@ tests:
 │  やらないこと: コード実装、テスト実行、ファイル操作
 │
 │  [設計フェーズ]
-├── brainstormer（設計案生成）─── model: Opus
-│     └── アプローチ比較、spec文書の作成
-├── design-reviewer（設計仕様レビュー）─── model: Opus
-│     └── 生成されたspecの品質・整合性レビュー
+├── design-reviewer（設計レビュー）─── model: Opus
+│     └── 設計の品質・整合性・要件カバレッジレビュー
 │
 │  [計画フェーズ]
 ├── planner（計画作成）─── model: Opus
@@ -553,23 +556,24 @@ tests:
 | # | サブエージェント | model | 対応スキル | 役割 |
 |---|----------------|-------|-----------|------|
 | 1 | requirements-analyst | Opus | requirements | 要件の抽出・構造化・ユーザーストーリー整理 |
-| 2 | brainstormer | Opus | brainstorming | 設計案の生成、アプローチ比較、spec文書の作成 |
-| 3 | design-reviewer | Opus | brainstorming | 生成されたspecの品質・整合性レビュー |
-| 4 | planner | Opus | planning | タスク分解と実装計画の生成 |
-| 5 | plan-reviewer | Opus | planning | 計画の粒度・依存関係・抜け漏れチェック |
-| 6 | implementer | Sonnet | tdd | TDDサイクルでのコード実装 + 自己レビュー |
-| 7 | simplifier | Sonnet | simplify | リファクタ・簡素化（de-sloppifyパターン） |
-| 8 | test-quality-engineer | Sonnet | test-quality | 境界値・異常系・エッジケースのテスト追加（AskUserQuestion付き） |
-| 9 | spec-compliance-reviewer | Opus | code-review | 仕様準拠レビュー |
-| 10 | quality-reviewer | Opus | code-review | コード品質・アーキテクチャレビュー |
-| 11 | security-reviewer | Opus | code-review | OWASP Top 10、シークレット検出、入力バリデーション |
-| 12 | verifier | Sonnet | verification | 全チェック実行、検証証拠の収集 |
-| 13 | cleanup-agent | Sonnet | cleanup | 不要ファイル検出（lint外の不要物のみ） |
-| 14 | doc-maintainer | Sonnet | (横断) | ADR作成、spec更新、README更新 |
-| 15 | test-runner | Sonnet | (横断) | テスト実行、冗長出力を要約して返す |
-| 16 | session-verifier | Sonnet | retrospective | セッション検証（成果物からワークフロー遵守確認） |
-| 17 | improvement-proposer | Opus | retrospective | フィードバックから改善提案（最大3件） |
-| 18 | roadmap-planner | Opus | roadmap | 大規模タスクのフェーズ分割・マイルストーン定義 |
+| 2 | design-reviewer | Opus | design | 設計の品質・整合性・要件カバレッジレビュー |
+| 3 | planner | Opus | planning | タスク分解と実装計画の生成 |
+| 4 | plan-reviewer | Opus | planning | 計画の粒度・依存関係・抜け漏れチェック |
+| 5 | implementer | Sonnet | tdd | TDDサイクルでのコード実装 + 自己レビュー |
+| 6 | simplifier | Sonnet | simplify | リファクタ・簡素化（de-sloppifyパターン） |
+| 7 | test-quality-engineer | Sonnet | test-quality | 境界値・異常系・エッジケースのテスト追加（AskUserQuestion付き） |
+| 8 | spec-compliance-reviewer | Opus | code-review | 仕様準拠レビュー |
+| 9 | quality-reviewer | Opus | code-review | コード品質・アーキテクチャレビュー |
+| 10 | security-reviewer | Opus | code-review | OWASP Top 10、シークレット検出、入力バリデーション |
+| 11 | verifier | Sonnet | verification | 全チェック実行、検証証拠の収集 |
+| 12 | cleanup-agent | Sonnet | cleanup | 不要ファイル検出（lint外の不要物のみ） |
+| 13 | doc-maintainer | Sonnet | (横断) | ドキュメント管理・更新・整合性チェック |
+| 14 | test-runner | Sonnet | (横断) | テスト実行、冗長出力を要約して返す |
+| 15 | session-verifier | Sonnet | retrospective | セッション検証（成果物からワークフロー遵守確認） |
+| 16 | improvement-proposer | Opus | retrospective | フィードバックから改善提案（最大3件） |
+| 17 | roadmap-planner | Opus | roadmap | 大規模タスクのフェーズ分割・マイルストーン定義 |
+| 18 | review-memory-curator | Sonnet | (横断) | コードレビューのフィードバックループ管理 |
+| 19 | docs-integrity-reviewer | Opus | (横断) | ドキュメント整合性レビュー |
 
 ※ debugger は廃止（docs/decisions/0001-debugging-skill-decision.md）
 ※ explorer は廃止（組み込み Explore で代替。docs/decisions/0002-explorer-agent-decision.md）
@@ -611,7 +615,7 @@ BLOCKED
 | ステップ | 委譲先 | エスカレーション |
 |---------|--------|---------------|
 | [1] 要件理解 | requirements-analyst | ✅ |
-| [2] 設計・ブレスト | brainstormer + 人間 | ❌ |
+| [2] 設計 | design-reviewer + 人間 | ❌ |
 | [3] 計画 | planner | ✅ |
 | [4] 実装 | implementer | ✅ |
 | [5] テスト | test-runner | ✅ |
@@ -722,7 +726,7 @@ claude -p --output-format stream-json --verbose
 | **CLAUDE.md** | 人間がテンプレから編集 | プロジェクト開始時 | 人間が随時 | しない |
 | **ADR** | AIがドラフト → 人間が承認・編集 | アーキテクチャ判断時 | Supersede（上書きせず新ADR） | しない（履歴） |
 | **decisions** | AIがドラフト → 人間が承認 | 技術選定時 | 追記（日付付き） | しない |
-| **specs** | [2]設計でAI+人間が共同作成 | brainstormingスキル内 | 実装中に差分があれば更新 | [7.5]で完了マーク |
+| **docs/design** | [2]設計でAI+人間が共同作成 | designスキル内 | 実装中に差分があれば更新 | [7.5]で完了マーク |
 | **plans** | [3]計画でAIが生成 → 人間承認 | planningスキル内 | タスク完了時にチェック | [7.5]で完了マーク |
 | **requirements** | 人間が主導、AIが構造化支援 | [1]要件理解フェーズ | 要件変更時 | しない |
 | **postmortems** | AIがドラフト → 人間が編集 | インシデント後 | しない（スナップショット） | しない |
@@ -730,7 +734,7 @@ claude -p --output-format stream-json --verbose
 **原則:**
 - CLAUDE.md は人間が書く（LLM生成は逆効果: -3%）
 - ADR は上書きしない（Supersede パターン）
-- specs/plans は整理フェーズで完了マーク（削除ではなくステータス変更）
+- docs/design / plans は整理フェーズで完了マーク（削除ではなくステータス変更）
 - AIのドラフト生成は有効だが、人間の編集・承認が必須
 
 ---
@@ -764,50 +768,60 @@ claude -p --output-format stream-json --verbose
 
 ---
 
-## 10. スキル一覧（15スキル）
+## 10. スキル一覧（18スキル）
 
-### ワークフロースキル（11個）
+### ワークフロースキル（12個）
 
 | # | スキル | ワークフロー位置 | Iron Law |
 |---|--------|----------------|----------|
 | 1 | requirements | [1] 要件理解 | 構造化された要件なしに設計を始めるな |
-| 2 | brainstorming | [2] 設計 | 設計承認なしにコードを書くな |
-| 3 | planning | [3] 計画 | 計画なしに実装を始めるな |
-| 4 | tdd | [4][5] 実装・テスト | テストなしにプロダクションコードを書くな |
-| 5 | simplify | [6] リファクタ | テストがGREENのまま簡素化せよ |
-| 6 | test-quality | [7] 品質テスト | 品質テストなしにレビューに進むな |
-| 7 | code-review | [8] レビュー | 3観点レビューを省略するな |
-| 8 | verification | [9] 完了検証 | 検証証拠なしに完了を宣言するな |
-| 9 | cleanup | [10] 整理 | 不要ファイルを残したままコミットするな |
-| 10 | commit | [11] コミット | 変更確認・コミットメッセージ生成・人間承認 |
-| 11 | retrospective | [12] 振り返り | 振り返りなしにセッションを終えるな |
+| 2 | design | [2] 設計 | 設計承認なしにコードを書くな |
+| 3 | roadmap | [2.5] ロードマップ分割（Large のみ） | フェーズ分割なしに複数機能を並行させるな |
+| 4 | planning | [3] 計画 | 計画なしに実装を始めるな |
+| 5 | tdd | [4][5] 実装・テスト | テストなしにプロダクションコードを書くな |
+| 6 | simplify | [6] リファクタ | テストがGREENのまま簡素化せよ |
+| 7 | test-quality | [7] 品質テスト | 品質テストなしにレビューに進むな |
+| 8 | code-review | [8] レビュー | 3観点レビューを省略するな |
+| 9 | verification | [9] 完了検証 | 検証証拠なしに完了を宣言するな |
+| 10 | cleanup | [10] 整理 | 不要ファイルを残したままコミットするな |
+| 11 | commit | [11] コミット | 変更確認・コミットメッセージ生成・人間承認 |
+| 12 | retrospective | [12] 振り返り | 振り返りなしにセッションを終えるな |
 
-### ユーティリティスキル（3個）
+### ユーティリティスキル（4個）
 
 | # | スキル | 概要 |
 |---|--------|------|
-| 12 | onboarding | ハーネスの使い方を対話的に教える（新メンバー向け） |
-| 13 | setup-references | プロジェクトの外部参照先を docs/references.md に整理 |
-| 14 | harness-contribute | プロジェクト側の改善をハーネスリポジトリに PR として還元 |
+| 13 | onboarding | ハーネスの使い方を対話的に教える（新メンバー向け） |
+| 14 | setup-references | プロジェクトの外部参照先を docs/references.md に整理 |
+| 15 | harness-contribute | プロジェクト側の改善をハーネスリポジトリに PR として還元 |
+| 16 | start-workflow | ユースケース選択でワークフローを開始 |
 
 ### モジュールスキル（条件付き）
 
 | # | スキル | 条件 | 概要 |
 |---|--------|------|------|
-| 15 | e2e-test | Playwright MCP 導入時 | ブラウザ操作で E2E テストを作成・実行 |
+| 17 | e2e-test | Playwright MCP 導入時 | ブラウザ操作で E2E テストを作成・実行 |
 
 ※ debugging スキルは廃止（docs/decisions/0001-debugging-skill-decision.md）
 ※ eval スキルは retrospective に再設計
+※ brainstorming スキルは design に改名（2026-04-08）
 
 ---
 
 ## 11. フック一覧
 
+フック定義は `.claude/settings.json` の `hooks` キーに配置される（公式仕様）。
+`.claude/hooks/scripts/` 配下に各フックスクリプトの実体。
+
 | イベント | フック | matcher | 目的 |
 |---------|--------|---------|------|
-| PreToolUse | coordinator-write-guard | Edit\|Write | コーディネーターの書き込みブロック |
-| PreToolUse | secret-scanner | Edit\|Write | シークレット（API キー等）の検出 |
-| PostToolUse | post-tool-log | Edit\|Write | 操作ログの記録 |
+| PreToolUse | coordinator-write-guard | `Edit\|Write\|MultiEdit\|NotebookEdit` | コーディネーターの書き込みブロック |
+| PreToolUse | secret-scanner | `Edit\|Write\|MultiEdit\|NotebookEdit` | シークレット（API キー等）の検出 |
+| PreToolUse | verification-gate | `Bash` | git commit 前に検証証拠の存在を確認 |
+| PreToolUse | post-verification-scan | `Bash` | 一時ファイル・デバッグコードの残存チェック |
+| PreToolUse | feedback-staleness-check | `Bash` | 古い open フィードバックの警告 |
+| PostToolUse | post-tool-log | `Edit\|Write\|MultiEdit\|NotebookEdit` | 操作ログの記録（session-tool-log.jsonl） |
+| PostToolUse | workflow-event-logger | `Agent` | サブエージェント ディスパッチのログ記録 |
 | PermissionDenied | permission-denied-recorder | (全ツール) | 権限拒否イベントの記録 |
 | SessionEnd | session-end-retrospective | (なし) | セッション振り返りリマインダー |
 
@@ -816,17 +830,19 @@ claude -p --output-format stream-json --verbose
 ## 12. 実装状況と今後の課題
 
 ### 完了したもの
-- [x] ワークフロースキル11個 + ユーティリティスキル3個の SKILL.md を作成
-- [x] ルール6つを作成（testing, coding-style, security, git-workflow, docs-structure, feedback-recording）
-- [x] エージェント17個（core）を定義 + モジュールエージェント2個（条件付き）
-- [x] hooks.json を作成（5スクリプト: coordinator-write-guard, secret-scanner, post-tool-log, permission-denied-recorder, session-end-retrospective）
+- [x] ワークフロースキル12個 + ユーティリティスキル4個 + モジュールスキル1個 の SKILL.md を作成（全18スキル）
+- [x] ルール6つを作成（testing, coding-style, security, workflow, docs-structure, feedback-recording）
+- [x] エージェント20個（core）を定義 + モジュールエージェント2個（条件付き、jinja）
+- [x] hooks 定義を .claude/settings.json に配置（9スクリプト: coordinator-write-guard, secret-scanner, verification-gate, post-verification-scan, feedback-staleness-check, post-tool-log, workflow-event-logger, permission-denied-recorder, session-end-retrospective）
 - [x] eval の行動ベース化（stream-json → trace-v1 → 決定的 assertion）
 - [x] eval cases 9スキル分 + アブレーション用
 - [x] アブレーション分析の仕組み（run-ablation.mjs）
 - [x] Copier テンプレート化（copier.yml）
 - [x] modules/ の実装（playwright-mcp, figma-mcp）
 - [x] _shared/ リソース（status-definition, completion-report-format, review-report-format, context-requirements）
-- [x] タスク規模別ワークフロー（Tiny/Small/Normal）
+- [x] タスク規模別ワークフロー（Tiny/Small/Normal/Large）
+- [x] RALPH Runner v1（外部オーケストレーター）の実装（runner/ 配下、152 bats テスト GREEN）
+- [x] review-memory（コードレビューのフィードバックループ）の実装（scripts/review-memory.mjs、103 node:test GREEN）
 
 ### 後で設計するもの
 - [ ] CI/CD 統合（PRごとのeval自動実行）
