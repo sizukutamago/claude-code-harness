@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 owner: sizukutamago
 last_updated: 2026-04-12
 covers: [REQ-002]
