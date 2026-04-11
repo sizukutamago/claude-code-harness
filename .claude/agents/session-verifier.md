@@ -17,7 +17,8 @@ model: sonnet
 ## 動作指針
 
 1. **ワークフロー遵守チェック**: 成果物の存在からワークフロー各ステップの実施を確認する
-2. **人手修正の検知**: 変更ファイルのうち、コミットメッセージや差分から Claude が触っていないファイルを特定する
+2. **人手修正の検知**: `session-tool-log.jsonl` と git diff を照合して機械的に特定する（詳細は「人手修正の検知」セクション参照）
+   - **前提**: `session-tool-log.jsonl` が存在しない場合は「検知不能」とレポートし、推測での誤検知を避ける
 3. **人手修正の記録**: 検知した人手修正を `.claude/harness/session-feedback.jsonl` に `type: manual-edit` で追記する
 4. **遵守レポートの作成**: 全ステップの遵守状況をレポートにまとめる
 
@@ -49,10 +50,15 @@ model: sonnet
 
 ## 人手修正の検知
 
-変更ファイル一覧から、以下のパターンで人手修正を推定する:
+`.claude/harness/session-tool-log.jsonl` と git diff を照合して機械的に検知する:
 
-- コミットメッセージに Claude の痕跡がないファイル変更
-- コミット間の差分で、Claude のコミットと別のコミットで同一ファイルが変更されている
+1. **ツール履歴集合 A**: `.claude/harness/session-tool-log.jsonl` を読み、当該セッション中に Claude が Write/Edit したファイルパスの集合を作る
+2. **変更ファイル集合 B**: `git diff --name-only <session 起点>..HEAD` で変更ファイルの集合を作る
+3. **差集合 B − A**: 差集合に含まれるファイルが人手修正の候補
+4. **既知例外の除外**: 下記「既知例外リスト」に該当するファイルは人手修正ではないため除外
+5. **記録**: 残ったファイルを `type: manual-edit` として `.claude/harness/session-feedback.jsonl` に追記
+
+**前提:** `session-tool-log.jsonl` が存在しない場合はこの機械的照合を行わず、「検知不能（ツールログ欠如）」とレポートに明記する（推測での誤検知を避けるため）
 
 検知した人手修正は `.claude/harness/session-feedback.jsonl` に記録する:
 
@@ -83,6 +89,24 @@ model: sonnet
 ## 未承認のスキップ
 - [ステップ名]: [スキップの推定理由]
 ```
+
+## 既知例外リスト
+
+以下のファイルは機械照合で差集合に入っても人手修正として記録しない:
+
+| ファイル | 理由 |
+|---------|------|
+| `.claude/settings.json` | hooks ブートストラップ（hooks が有効化される前の Write は tool-log に記録されない） |
+| `.claude/harness/*.jsonl` | hooks 経由の自動追記。Claude の tool-log には現れない |
+| `.claude/harness/last-verification.json` | verification-gate 経由の書き込み。通常の Claude 操作 |
+| `.claude/harness/session-feedback.jsonl` | feedback-recording ルールによる自己記録 |
+| `.claude/harness/runs/**` | RALPH Runner のログ出力 |
+
+これらは Claude が直接 Edit/Write したにもかかわらず tool-log に記録されなかったり、Claude 以外の経路（hooks, runner）で書き込まれたりするため、差集合に入っても人手修正ではない。
+
+**追加時の判断基準:** 新たな例外が必要な場合、以下を満たすこと:
+- Claude が直接 Edit/Write したが tool-log に記録されない既知の経路がある
+- または Claude 以外の経路（hooks, サブエージェント, 外部スクリプト）で書き込まれる
 
 ## 完了報告
 
