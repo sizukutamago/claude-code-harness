@@ -11,11 +11,12 @@
 
 ```
 .claude/                — テンプレート本体（Copier で導入先に展開される）
+  settings.json         — Claude Code 設定（hooks 定義を含む。公式必須配置）
   agents/               — エージェント定義（18 core + モジュール条件付き）
     _shared/            — エージェント間の共通リファレンス
   skills/               — コアスキル（ワークフロー方法論）
   rules/                — 常時有効ルール
-  hooks/                — イベント駆動の自動化
+  hooks/scripts/        — フックスクリプト本体（settings.json から参照される）
   harness/              — ランタイムデータ（session-feedback.jsonl 等）
 modules/                — モジュールのマニフェスト・ドキュメント
   playwright-mcp/       — ブラウザ操作モジュール
@@ -34,6 +35,7 @@ scripts/                — Node.js ユーティリティスクリプト
   collect-feedback.mjs  — session-feedback.jsonl の集計・分類
   review-memory.mjs     — review-findings.jsonl の CRUD・クラスタ集計・conventions 整形
   migrate-review-findings.mjs — 初回マイグレーション（既存9件に id/cluster_id 付与）
+  verify-hooks.mjs      — hooks 設定の自己検証（settings.json の hooks セクション + post-tool-log 発火確認）
 docs/                   — 設計書・調査資料・ガイド
 copier.yml              — Copier テンプレート設定
 .copier-answers.yml.jinja — Copier メタデータテンプレート
@@ -70,6 +72,17 @@ Copier テンプレートとして配布。詳細は `docs/guides/distribution-w
 レビュー依頼時に伝えること:
 - 何を作った/変えたかの概要（1-3行）
 - 確認してほしいポイント（判断に迷った箇所、既存との整合性など）
+
+## Hooks 設定
+
+Claude Code の hooks は `.claude/settings.json` の `hooks` キーで定義する。
+**独立ファイル `.claude/hooks/hooks.json` は Claude Code が読まない**（公式仕様 https://code.claude.com/docs/en/settings ）。
+
+- **配置先**: `.claude/settings.json`（Project scope、チーム共有、Copier 配布対象）
+- **フック本体**: `.claude/hooks/scripts/*.mjs`
+- **自己検証**: `node scripts/verify-hooks.mjs`（hooks 定義と post-tool-log の発火を確認）
+
+hooks の動作確認は毎セッション開始時に `verify-hooks.mjs` で検証することを推奨。
 
 ## review-memory — 3層メモリモデル
 
