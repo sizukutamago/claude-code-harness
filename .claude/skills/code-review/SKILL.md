@@ -241,25 +241,150 @@ SHOULD: レスポンスに内部エラーの詳細が露出（スタックトレ
 
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` を特定しろ。タスクのコンテキスト（plan、直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
+### Phase 0: review-conventions.md の読み込み（新規）
+
+1. **review-conventions.md を読む**
+   - `.claude/harness/review-memory/review-conventions.md` を読み込む
+   - 存在しない場合は `(no review conventions yet)` を使用する
+   - この内容は Phase 1 の各レビュアープロンプトに埋め込む
+
+2. **各レビュアーのプロンプトに conventions を埋め込む**
+   - spec-compliance-reviewer, quality-reviewer, security-reviewer のディスパッチプロンプトに以下のセクションを含める:
+     ```
+     ## Project Review Conventions
+
+     過去のレビューで蓄積されたアンチパターン。新しいコードがこれらに該当しないかチェックしてください。
+
+     <review-conventions.md の全文 or "(no review conventions yet)">
+     ```
+   - レビュアーはこの conventions を参照して「過去に同じ問題が見つかっていないか」を意識したレビューを行う
+
+### Phase 1: 3観点並列レビュー
+
 1. **3レビュアーを並列ディスパッチする**
    - 以下のエージェントを名前指定で同時にディスパッチする:
      - `spec-compliance-reviewer`: プロンプトに REQ パス + 対応する REQ の requirements.md 全文 + コード差分 + 関連テストを含める
      - `quality-reviewer`: プロンプトにコード差分 + 関連ファイルを含める
      - `security-reviewer`: プロンプトにコード差分 + 関連ファイルを含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
+   - **Phase 0 で読み込んだ `## Project Review Conventions` セクションを各プロンプトに含める**
 
-2. **あなたが全指摘を一括収集し、MUST 指摘を確認する**
+2. **あなたが全指摘を一括収集する**
+
+### Phase 2: review-memory の記録と昇格
+
+Phase 1 の全指摘を収集した後、以下の処理を実行する。
+**レビュー自体は Phase 2 の失敗に左右されない。CLI エラーが発生しても Phase 3 に進め。**
+
+#### Phase 2-a: クラスタ代表リスト取得
+
+1. **既存クラスタの代表を取得する**
+   ```
+   node scripts/review-memory.mjs representatives
+   ```
+   - 出力: JSON 配列 `[{cluster_id, category, pattern, suggestion}, ...]`
+   - `.claude/harness/review-memory/findings.jsonl` が空またはファイルが存在しない場合は空配列
+   - CLI エラーが発生した場合: stderr に出力し、代表リストを空配列として続行する
+
+#### Phase 2-b: 各新規指摘について review-memory-curator を並列ディスパッチ
+
+2. **Phase 1 で収集した全指摘（3観点分）を並列で curator に渡す**
+   - 各指摘について `review-memory-curator` エージェントを同時ディスパッチする
+   - 各 curator のプロンプトに以下を全文埋め込む:
+     - 新規指摘1件（`category`, `pattern`, `suggestion`）
+     - Phase 2-a で取得したクラスタ代表リスト（全件）
+     - 判定指示: 「この指摘が代表リストの既存クラスタと類似する場合は `{"cluster_id": "c-XXX"}` を返せ。類似するクラスタがない場合は `{"cluster_id": null}` を返せ」
+   - 出力: `{"cluster_id": "c-XXX"}` または `{"cluster_id": null}`
+   - **curator がタイムアウトまたは不正 JSON を返した場合**: 該当指摘を `cluster_id: null`（新規クラスタ扱い）としてフォールバック
+
+3. **各 curator の出力を集約する**
+   - `cluster_id` が既存（非 null）の指摘 → 該当 `cluster_id` にマージ対象としてリストアップ
+   - `cluster_id` が null の指摘 → 新規クラスタ候補としてリストアップ
+
+#### Phase 2-c: 新規クラスタ候補のバッチ判定
+
+4. **新規クラスタ候補が複数ある場合、追加の curator 呼び出しでバッチ判定する**
+   - `review-memory-curator` エージェントをディスパッチし、プロンプトに新規クラスタ候補の全指摘を一括で渡す
+   - 指示: 「以下の指摘をグループ化せよ。類似する指摘を同じグループにまとめること。各グループが1つの新規クラスタになる」
+   - 出力: グループ化された結果（例: `[[指摘A, 指摘B], [指摘C]]`）
+   - **バッチ判定の出力が不正な場合**: 全新規クラスタ候補をそれぞれ独立した新規クラスタとして扱う
+
+5. **グループ化結果に基づき、各グループに cluster_id を採番して findings.jsonl に追記する**
+
+   `add` CLI が採番するのは finding の `id` (rf-NNN) だけで、`cluster_id` (c-NNN) は採番しない。
+   グループごとに新規 `cluster_id` を採番するには `--new-cluster` フラグを使う。
+
+   **グループ内の追記手順:**
+   ```bash
+   # グループ内の1件目: --new-cluster で新規 cluster_id を自動採番して追記
+   echo '<finding_json>' | node scripts/review-memory.mjs add --new-cluster
+   # → stdout に {"id": "rf-NNN", "cluster_id": "c-NNN"} が返る
+
+   # グループ内の2件目以降: 1件目で得た cluster_id を --cluster で指定して追記
+   echo '<finding_json>' | node scripts/review-memory.mjs add --cluster c-NNN
+   ```
+
+   - `--new-cluster` と `--cluster` を両方指定するとエラー（exit 1）
+   - どちらも指定しない場合は stdin の `cluster_id` をそのまま使う（後方互換）
+
+#### Phase 2-d: findings.jsonl への追記
+
+6. **全指摘について finding JSON を作成する**
+   ```json
+   {
+     "date": "YYYY-MM-DD",
+     "project": "<プロジェクト名>",
+     "reviewer": "spec|quality|security",
+     "severity": "MUST|SHOULD|CONSIDER",
+     "category": "...",
+     "pattern": "...",
+     "suggestion": "...",
+     "file": "...",
+     "cluster_id": "c-XXX"
+   }
+   ```
+   - `cluster_id` は Phase 2-b/2-c で決定した値を使う（新規クラスタ候補は `null`）
+
+7. **各 finding を CLI で追記する（Phase 2-c の手順に従う）**
+   ```bash
+   # 既存クラスタにマージする場合（Phase 2-b で cluster_id が決定済み）
+   echo '<finding_json>' | node scripts/review-memory.mjs add
+
+   # 新規クラスタのグループ内1件目
+   echo '<finding_json>' | node scripts/review-memory.mjs add --new-cluster
+
+   # 新規クラスタのグループ内2件目以降
+   echo '<finding_json>' | node scripts/review-memory.mjs add --cluster c-NNN
+   ```
+   - CLI エラーが発生した場合: stderr に出力し、次の finding の追記に進む（ワークフローは継続）
+
+#### Phase 2-e: 昇格処理
+
+8. **昇格処理を実行する**
+   ```
+   node scripts/review-memory.mjs promote-all
+   ```
+   - 出力: 昇格された cluster_id の配列 `{"promoted": ["c-001", "c-002"]}`
+   - CLI エラーが発生した場合: stderr に出力し、Phase 3 に進む
+
+9. **昇格されたクラスタがある場合**
+   - 次回以降のレビューセッションで `review-conventions.md` から自動的に読み込まれる（Phase 0）
+   - このセッションでの追加アクションは不要
+
+### Phase 3: MUST 指摘の修正ループ
+
+3. **MUST 指摘を確認する**
    - MUST 指摘なし → レビュー完了
    - MUST 指摘あり → 修正フェーズに進む
 
-3. **修正フェーズ: 依存分析してから `implementer` をディスパッチする**
+4. **修正フェーズ: 依存分析してから `implementer` をディスパッチする**
    - 全 MUST 指摘の affected files を洗い出す
    - MUST 指摘が少数（3件以下）かつ affected files が少ない → 1 implementer にまとめて渡す
    - MUST 指摘が多い場合:
      - **Phase 1**: 共有部分（型、interface、共通関数）の指摘を 1 implementer にディスパッチ（直列）
      - **Phase 2**: 独立部分（ファイル重複なし）の指摘群を複数 implementer に並列ディスパッチ
 
-4. **修正後、MUST 指摘があった観点のみ再レビューする**
+5. **修正後、MUST 指摘があった観点のみ再レビューする**
    - 該当するレビュアーだけを並列ディスパッチする（全観点やり直す必要はない）
    - 修正→再レビューは最大3回まで
    - 3回で解決しない → モデルエスカレート1回 → ダメなら人間エスカレート
