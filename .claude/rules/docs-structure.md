@@ -85,6 +85,16 @@ docs/
 | 実装計画 | `docs/plans/` | `requirements/REQ-*/` 内に plan.md を置く |
 | 要件（何を作るか） | `requirements/REQ-*/` | 設計書や計画に要件を重複して書く |
 
+### requirements/ の配置例外
+
+`requirements/` ディレクトリは**リポジトリルート直下**に配置される（`docs/` 配下ではない）。これは以下の理由による意図的な配置:
+
+1. **要件の独立性**: 要件は実装（docs/design, docs/plans）から論理的に独立しているため、物理的にも分離する
+2. **SSOT の明示性**: `requirements/REQ-*/requirements.md` というパスで要件の場所を一意に特定できる
+3. **docs/ との明確な境界**: `docs/` 配下はドキュメント（設計・計画・調査）、`requirements/` は要件、という責務分離
+
+したがって `requirements/` は本ルールファイルの「docs/ 直下は固定ファイルのみ」ルール（必須ルール 2）の対象外である。`requirements/` を `docs/` 配下に移動しようとしないこと。
+
 ## 禁止事項
 
 - snake_case や camelCase のファイル名（`my_document.md`, `myDocument.md`）
