@@ -485,10 +485,10 @@ describe("promoteCluster", () => {
     assert.equal(archived.length, 2);
     assert.ok(archived.every((e) => e.cluster_id === "c-001"));
 
-    // conventions.md AUTO セクションに c-001 のエントリが追加されている
+    // conventions.md AUTO セクションに format-fragility のエントリが追加されている（新フォーマット）
     const conventionsContent = await readFile(conventionsPath, "utf-8");
-    assert.ok(conventionsContent.includes("c-001"), "conventions should contain c-001");
-    assert.ok(conventionsContent.includes("format-fragility"), "conventions should contain category");
+    assert.ok(conventionsContent.includes("## format-fragility"), "conventions should contain format-fragility category header");
+    assert.ok(conventionsContent.includes("独自フォーマット使用"), "conventions should contain pattern");
 
     // findings から c-001 の2件が削除されている
     const remaining = await readFindings(findingsPath);
@@ -535,7 +535,7 @@ describe("promoteCluster", () => {
 
     const content = await readFile(conventionsPath, "utf-8");
     assert.ok(content.includes("<!-- AUTO:START -->"), "should create AUTO section");
-    assert.ok(content.includes("c-001"), "should contain c-001 entry");
+    assert.ok(content.includes("## cat-a"), "should contain cat-a category entry");
   });
 
   // TC-P4: 冪等性 - 同じ cluster_id を2回昇格しても archive と conventions に重複しない
@@ -564,10 +564,14 @@ describe("promoteCluster", () => {
     assert.equal(ids.filter((id) => id === "rf-001").length, 1, "rf-001 should appear once");
     assert.equal(ids.filter((id) => id === "rf-002").length, 1, "rf-002 should appear once");
 
-    // conventions.md AUTO セクションに c-001 は1回だけ
+    // conventions.md AUTO セクションに cat-a は1回だけ
     const content = await readFile(conventionsPath, "utf-8");
-    const matches = content.match(/### c-001:/g) || [];
-    assert.equal(matches.length, 1, "c-001 should appear once in AUTO section");
+    const autoStart = content.indexOf("<!-- AUTO:START -->");
+    const autoEnd = content.indexOf("<!-- AUTO:END -->");
+    const autoContent = content.slice(autoStart, autoEnd);
+    // cat-a の ## ヘッダーが1回だけ存在すること
+    const catMatches = autoContent.match(/^## cat-a$/gm) || [];
+    assert.equal(catMatches.length, 1, "cat-a should appear once in AUTO section");
   });
 
   // TC-P5: 存在しない cluster_id を指定しても no-op で正常終了
@@ -657,8 +661,8 @@ describe("promoteCluster", () => {
     await promoteCluster(findingsPath, archivePath, conventionsPath, "c-002");
 
     const content = await readFile(conventionsPath, "utf-8");
-    assert.ok(content.includes("c-001"), "conventions should contain c-001 after cumulative promotion");
-    assert.ok(content.includes("c-002"), "conventions should contain c-002 after cumulative promotion");
+    assert.ok(content.includes("## cat-a"), "conventions should contain cat-a after cumulative promotion");
+    assert.ok(content.includes("## cat-b"), "conventions should contain cat-b after cumulative promotion");
 
     // findings は全て削除されている
     const remaining = await readFindings(findingsPath);
@@ -710,7 +714,8 @@ describe("rebuildConventions", () => {
   // TC-23: AUTO セクションの全置換 (AC-8)
   it("TC-23: replaces AUTO section with new autoEntries", async () => {
     const conventionsPath = tmpPath("auto-replace.md");
-    const oldContent = `# Review Conventions\n\n<!-- MANUAL:START -->\n<!-- MANUAL:END -->\n\n<!-- AUTO:START -->\n## Auto-promoted patterns\n\n### c-old: old-category (5 occurrences)\n- Pattern: old pattern\n- Suggestion: old suggestion\n<!-- AUTO:END -->\n`;
+    // 旧フォーマット（c-old が含まれる）
+    const oldContent = `# Review Conventions\n\n<!-- MANUAL:START -->\n<!-- MANUAL:END -->\n\n<!-- AUTO:START -->\n## old-category\n- old pattern / 対策: old suggestion\n<!-- AUTO:END -->\n`;
     await writeFile(conventionsPath, oldContent);
 
     const newEntries = [
@@ -725,15 +730,17 @@ describe("rebuildConventions", () => {
     await rebuildConventions(conventionsPath, newEntries);
 
     const result = await readFile(conventionsPath, "utf-8");
-    assert.ok(!result.includes("c-old"), "old AUTO content should be replaced");
-    assert.ok(result.includes("c-001"), "new entry should be present");
+    assert.ok(!result.includes("old-category"), "old AUTO content should be replaced");
     assert.ok(result.includes("format-fragility"), "new category should be present");
+    assert.ok(result.includes("独自の中間フォーマットを使う"), "new pattern should be present");
+    assert.ok(result.includes("JSONL で統一する"), "new suggestion should be present");
   });
 
   // TC-24: autoEntries が空配列の場合 AUTO セクションは空（マーカーのみ）
   it("TC-24: AUTO section is empty when autoEntries is empty array", async () => {
     const conventionsPath = tmpPath("empty-auto.md");
-    const initialContent = `<!-- MANUAL:START -->\n<!-- MANUAL:END -->\n<!-- AUTO:START -->\n## Auto-promoted patterns\n\n### c-001: something (2 occurrences)\n<!-- AUTO:END -->\n`;
+    // 新フォーマット（category ヘッダーあり）で初期化
+    const initialContent = `<!-- MANUAL:START -->\n<!-- MANUAL:END -->\n<!-- AUTO:START -->\n## something\n- some pattern / 対策: some suggestion\n<!-- AUTO:END -->\n`;
     await writeFile(conventionsPath, initialContent);
 
     await rebuildConventions(conventionsPath, []);
@@ -770,12 +777,14 @@ describe("rebuildConventions", () => {
     await rebuildConventions(conventionsPath, entries);
 
     const result = await readFile(conventionsPath, "utf-8");
-    assert.ok(result.includes("### c-001: format-fragility (2 occurrences)"), "c-001 header");
-    assert.ok(result.includes("- Pattern: 独自の中間フォーマットを使う"), "c-001 pattern");
-    assert.ok(result.includes("- Suggestion: JSONL で統一する"), "c-001 suggestion");
-    assert.ok(result.includes("### c-002: prompt-injection (3 occurrences)"), "c-002 header");
-    assert.ok(result.includes("- Pattern: AI 出力を未検証で使う"), "c-002 pattern");
-    assert.ok(result.includes("- Suggestion: 長さ上限・制御文字除去"), "c-002 suggestion");
+    // 新フォーマット: ## <category> の見出しと - <pattern> / 対策: <suggestion> のエントリ
+    assert.ok(result.includes("## format-fragility"), "format-fragility category header");
+    assert.ok(result.includes("- 独自の中間フォーマットを使う / 対策: JSONL で統一する"), "c-001 entry in new format");
+    assert.ok(result.includes("## prompt-injection"), "prompt-injection category header");
+    assert.ok(result.includes("- AI 出力を未検証で使う / 対策: 長さ上限・制御文字除去"), "c-002 entry in new format");
+    // cluster_id は Markdown に出力されない
+    assert.ok(!result.includes("c-001"), "cluster_id should not appear in markdown");
+    assert.ok(!result.includes("c-002"), "cluster_id should not appear in markdown");
   });
 
   // TC-26: マーカー不在時の自動マイグレーション

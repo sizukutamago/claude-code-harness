@@ -1,7 +1,7 @@
 ---
-status: Approved
+status: Verified
 owner: sizukutamago
-last_updated: 2026-04-10
+last_updated: 2026-04-09
 ---
 
 # REQ-001: review-memory — コードレビューのフィードバックループ
@@ -211,11 +211,12 @@ Given review-conventions.md に既に特定のクラスタが存在する
 When 同じクラスタの新規エントリが記録され昇格処理が走る
 Then review-conventions.md に重複追加されない
 
-### AC-11: 初期シードのエントリも新規扱い
+### AC-11: 初期シードのエントリは cluster_id=null のまま保持される
 Covers: FR-3, FR-4
-Given 初期シードとして review-findings.jsonl に9件のエントリがある（cluster_id 未設定）
+Given 初期シードとして review-findings.jsonl に9件のエントリがある（migrate 後、cluster_id: null）
 When 初回の code-review 昇格処理が実行される
-Then 既存エントリにも cluster_id が付与され、クラスタサイズ2以上のものが昇格する
+Then 初期シードのエントリは cluster_id=null のまま残り、findPromotable の対象にならない（バックフィルしない方針）
+And 新規指摘が curator により既存クラスタ（null 以外）にマージされる場合のみ、新規 cluster_id が付与される
 
 ## 影響範囲
 
@@ -225,7 +226,9 @@ Then 既存エントリにも cluster_id が付与され、クラスタサイズ
 ### 新規作成ファイル
 - `.claude/agents/review-memory-curator.md` — 類似度判定を担う新規エージェント
 - `scripts/review-memory.mjs` — 記録・昇格・整形のユーティリティを提供する Node.js スクリプト
+- `scripts/migrate-review-findings.mjs` — 初回マイグレーション用（一度だけ実行）
 - `.claude/harness/review-memory/review-findings-archive.jsonl` — Cold 層（初回昇格時に自動生成）
+- `.claude/harness/review-memory/conventions-state.jsonl` — AUTO セクションの SSOT（初回昇格時に自動生成）
 
 ### 既存ファイル（マイグレーションあり）
 - `.claude/harness/review-memory/review-findings.jsonl`（9件、cluster_id 未設定）— 初回実行時に cluster_id を付与する

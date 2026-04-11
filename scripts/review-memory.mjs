@@ -10,17 +10,20 @@
  * - readFindings(findingsPath)         — JSONL を読んで配列を返す
  * - appendFinding(findingsPath, finding) — エントリを1行追記
  * - writeFindingsAtomic(findingsPath, findings) — 配列全体をアトミックに書き出す
+ * - writeFileAtomic(targetPath, content) — ファイルをアトミックに書き込む共通ヘルパー
  * - nextFindingId(findingsPath)        — 次の rf-NNN ID を採番
  * - nextClusterId(findingsPath)        — 次の c-NNN ID を採番
  * - findPromotable(findingsPath)       — 昇格対象クラスタ一覧を返す
  * - getClusterRepresentatives(findingsPath) — クラスタ代表エントリ一覧を返す
- * - promoteCluster(...)               — cluster_id を指定してクラスタを昇格
- * - rebuildConventions(...)           — conventions.md を MANUAL/AUTO に再構築
+ * - promoteCluster(...)               — cluster_id を指定してクラスタを昇格（サイドカー state 更新）
+ * - rebuildConventions(...)           — conventions.md を MANUAL/AUTO に再構築（カテゴリ別フォーマット）
  */
 
-import { readFile, appendFile, writeFile, rename, access } from "node:fs/promises";
+import { readFile, appendFile, writeFile, rename, unlink, access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { parseArgs } from "node:util";
+import { dirname, join } from "node:path";
+import { randomBytes } from "node:crypto";
 
 // --- マーカー定数 ---
 
@@ -70,6 +73,26 @@ export function computeMaxIdNum(findings, field, prefix) {
 }
 
 // --- 公開 API ---
+
+/**
+ * ファイルをアトミックに書き込む共通ヘルパー。
+ * tmpfile に書いてから rename で置換する。
+ * tmpfile パスに randomBytes を使って予測不能にする（TOCTOU 対策）。
+ *
+ * @param {string} targetPath
+ * @param {string} content
+ * @returns {Promise<void>}
+ */
+export async function writeFileAtomic(targetPath, content) {
+  const tmpPath = `${targetPath}.tmp.${process.pid}.${randomBytes(8).toString("hex")}`;
+  try {
+    await writeFile(tmpPath, content, "utf-8");
+    await rename(tmpPath, targetPath);
+  } catch (err) {
+    try { await unlink(tmpPath); } catch {}
+    throw err;
+  }
+}
 
 /**
  * JSONL ファイルを読んで配列を返す。
@@ -124,11 +147,9 @@ export async function appendFinding(findingsPath, finding) {
  * @returns {Promise<void>}
  */
 export async function writeFindingsAtomic(findingsPath, findings) {
-  const tmpPath = `${findingsPath}.tmp.${process.pid}`;
   const lines = findings.map((f) => JSON.stringify(f));
   const content = lines.length > 0 ? lines.join("\n") + "\n" : "";
-  await writeFile(tmpPath, content, "utf-8");
-  await rename(tmpPath, findingsPath);
+  await writeFileAtomic(findingsPath, content);
 }
 
 /**
@@ -224,50 +245,46 @@ export async function getClusterRepresentatives(findingsPath) {
 }
 
 /**
- * conventions.md の AUTO セクションから既存の autoEntries を抽出する。
- * AUTO セクションが存在しない場合は空配列を返す。
+ * サイドカー state ファイルのパスを返す。
+ * conventions.md と同じディレクトリの conventions-state.jsonl。
  *
- * @param {string} content — conventions.md の全文
- * @returns {Array<{cluster_id: string, category: string, pattern: string, suggestion: string, size: number}>}
+ * @param {string} conventionsPath
+ * @returns {string}
  */
-function parseAutoEntries(content) {
+function conventionsStatePath(conventionsPath) {
+  return join(dirname(conventionsPath), "conventions-state.jsonl");
+}
 
-  const autoStartIdx = content.indexOf(AUTO_START);
-  const autoEndIdx = content.indexOf(AUTO_END);
-  if (autoStartIdx === -1 || autoEndIdx === -1) {
+/**
+ * サイドカー state ファイルを読んで配列を返す。
+ * ファイルが存在しない場合は空配列を返す。
+ *
+ * @param {string} conventionsPath
+ * @returns {Promise<Array<{cluster_id: string, category: string, pattern: string, suggestion: string, size: number}>>}
+ */
+async function readConventionsState(conventionsPath) {
+  const statePath = conventionsStatePath(conventionsPath);
+  if (!(await fileExists(statePath))) {
     return [];
   }
+  const content = await readFile(statePath, "utf-8");
+  const lines = content.split("\n").filter((l) => l.trim().length > 0);
+  return lines.map((l) => JSON.parse(l));
+}
 
-  const autoSection = content.slice(autoStartIdx + AUTO_START.length, autoEndIdx);
-
-  // "### c-XXX: category (N occurrences)" の行でエントリを分割
-  const headerPattern = /^### (c-\d+): (.+?) \((\d+) occurrences\)/m;
-  const blockSplitPattern = /(?=^### c-\d+:)/m;
-
-  const blocks = autoSection.split(blockSplitPattern).filter((b) => b.trim().length > 0);
-
-  const entries = [];
-  for (const block of blocks) {
-    const headerMatch = block.match(headerPattern);
-    if (!headerMatch) continue;
-
-    const cluster_id = headerMatch[1];
-    const category = headerMatch[2];
-    const size = parseInt(headerMatch[3], 10);
-
-    const patternMatch = block.match(/^- Pattern: (.+)/m);
-    const suggestionMatch = block.match(/^- Suggestion: (.+)/m);
-
-    entries.push({
-      cluster_id,
-      category,
-      pattern: patternMatch ? patternMatch[1] : "",
-      suggestion: suggestionMatch ? suggestionMatch[1] : "",
-      size,
-    });
-  }
-
-  return entries;
+/**
+ * サイドカー state ファイルをアトミックに書き込む。
+ *
+ * @param {string} conventionsPath
+ * @param {Array<{cluster_id: string, category: string, pattern: string, suggestion: string, size: number}>} entries
+ * @returns {Promise<void>}
+ */
+async function writeConventionsState(conventionsPath, entries) {
+  const statePath = conventionsStatePath(conventionsPath);
+  const content = entries.length > 0
+    ? entries.map((e) => JSON.stringify(e)).join("\n") + "\n"
+    : "";
+  await writeFileAtomic(statePath, content);
 }
 
 /**
@@ -314,15 +331,11 @@ export async function promoteCluster(findingsPath, archivePath, conventionsPath,
     }
   }
 
-  // ステップ2: conventions.md AUTO セクション更新（冪等: cluster_id で重複チェック）
-  const existingContent = (await fileExists(conventionsPath))
-    ? await readFile(conventionsPath, "utf-8")
-    : "";
+  // ステップ2: conventions.md AUTO セクション更新（サイドカー state が SSOT）
+  const existingStateEntries = await readConventionsState(conventionsPath);
 
-  const existingAutoEntries = parseAutoEntries(existingContent);
-
-  // 対象クラスタが既に AUTO セクションに存在するかチェック
-  const alreadyInAuto = existingAutoEntries.some((e) => e.cluster_id === clusterId);
+  // 対象クラスタが既に state に存在するかチェック（冪等: cluster_id で重複チェック）
+  const alreadyInState = existingStateEntries.some((e) => e.cluster_id === clusterId);
 
   // 代表エントリ（最初のエントリ）から autoEntry を構築
   const representative = targetEntries[0];
@@ -334,12 +347,14 @@ export async function promoteCluster(findingsPath, archivePath, conventionsPath,
     size: targetEntries.length,
   };
 
-  // AUTO セクションのエントリを更新（存在すれば置き換え、なければ追加）
-  const updatedAutoEntries = alreadyInAuto
-    ? existingAutoEntries.map((e) => (e.cluster_id === clusterId ? newAutoEntry : e))
-    : [...existingAutoEntries, newAutoEntry];
+  // state のエントリを更新（存在すれば置き換え、なければ追加）
+  const updatedStateEntries = alreadyInState
+    ? existingStateEntries.map((e) => (e.cluster_id === clusterId ? newAutoEntry : e))
+    : [...existingStateEntries, newAutoEntry];
 
-  await rebuildConventions(conventionsPath, updatedAutoEntries);
+  // サイドカー state を更新してから Markdown を再生成
+  await writeConventionsState(conventionsPath, updatedStateEntries);
+  await rebuildConventions(conventionsPath, updatedStateEntries);
 
   // ステップ3: findings.jsonl から削除
   const remainingFindings = allFindings.filter((e) => e.cluster_id !== clusterId);
@@ -390,14 +405,18 @@ export async function rebuildConventions(conventionsPath, autoEntries) {
     `\n` +
     `${AUTO_START}\n${autoSectionContent}${AUTO_END}\n`;
 
-  // atomic write (tmpfile → rename)
-  const tmpFilePath = `${conventionsPath}.tmp.${process.pid}`;
-  await writeFile(tmpFilePath, newContent, "utf-8");
-  await rename(tmpFilePath, conventionsPath);
+  await writeFileAtomic(conventionsPath, newContent);
 }
 
 /**
- * autoEntries から AUTO セクションの内容文字列を生成する。
+ * autoEntries から AUTO セクションの内容文字列を生成する（カテゴリ別グルーピング）。
+ *
+ * 出力フォーマット:
+ * ## <category>
+ * - <pattern> / 対策: <suggestion>
+ *
+ * 同じ category のエントリは同一セクションにまとめる。
+ * cluster_id は Markdown には出力しない（サイドカー state が SSOT）。
  *
  * @param {Array<{cluster_id: string, category: string, pattern: string, suggestion: string, size: number}>} autoEntries
  * @returns {string}
@@ -407,11 +426,21 @@ function buildAutoSection(autoEntries) {
     return "";
   }
 
-  const lines = ["## Auto-promoted patterns", ""];
+  // category 別にグルーピング（挿入順を保持）
+  const categoryMap = new Map();
   for (const entry of autoEntries) {
-    lines.push(`### ${entry.cluster_id}: ${entry.category} (${entry.size} occurrences)`);
-    lines.push(`- Pattern: ${entry.pattern}`);
-    lines.push(`- Suggestion: ${entry.suggestion}`);
+    if (!categoryMap.has(entry.category)) {
+      categoryMap.set(entry.category, []);
+    }
+    categoryMap.get(entry.category).push(entry);
+  }
+
+  const lines = [];
+  for (const [category, entries] of categoryMap) {
+    lines.push(`## ${category}`);
+    for (const entry of entries) {
+      lines.push(`- ${entry.pattern} / 対策: ${entry.suggestion}`);
+    }
     lines.push("");
   }
 
@@ -445,12 +474,54 @@ async function readStdin() {
  * @param {object} entry
  */
 function validateFinding(entry) {
+  // 必須フィールドチェック
   const required = ["date", "project", "reviewer", "severity", "category", "pattern", "suggestion", "file"];
   for (const field of required) {
     if (!(field in entry) || typeof entry[field] !== "string" || entry[field].length === 0) {
       throw new Error(`Missing or invalid required field: ${field}`);
     }
   }
+
+  // 長さ上限（プロンプトインジェクション対策 + ReDoS 対策）
+  const MAX_LENGTH = 500;
+  const LONG_FIELDS = ["pattern", "suggestion"];
+  for (const field of LONG_FIELDS) {
+    if (entry[field].length > MAX_LENGTH) {
+      throw new Error(`Field ${field} exceeds max length of ${MAX_LENGTH} characters`);
+    }
+  }
+
+  // 制御文字の禁止（改行・タブ含む、スペースは許可）
+  const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0b-\x1f\x7f]/;
+  const SANITIZE_FIELDS = ["category", "pattern", "suggestion", "file"];
+  for (const field of SANITIZE_FIELDS) {
+    if (CONTROL_CHAR_PATTERN.test(entry[field])) {
+      throw new Error(`Field ${field} contains control characters`);
+    }
+  }
+
+  // category の allowlist（英数字・ハイフン・アンダースコア）
+  if (!/^[a-zA-Z0-9_-]+$/.test(entry.category)) {
+    throw new Error(`category must match /^[a-zA-Z0-9_-]+$/, got: ${entry.category}`);
+  }
+
+  // file の allowlist（パストラバーサル対策）
+  // 使用可能文字を制限し、連続ドット（..）を禁止
+  if (!/^[a-zA-Z0-9._/\-]+$/.test(entry.file) || entry.file.includes("..")) {
+    throw new Error(`file must match /^[a-zA-Z0-9._\\/\\-]+$/ and must not contain '..' got: ${entry.file}`);
+  }
+
+  // マーカー文字列の禁止（conventions.md 汚染対策）
+  const FORBIDDEN_MARKERS = [MANUAL_START, MANUAL_END, AUTO_START, AUTO_END];
+  for (const field of LONG_FIELDS) {
+    for (const marker of FORBIDDEN_MARKERS) {
+      if (entry[field].includes(marker)) {
+        throw new Error(`Field ${field} contains forbidden marker: ${marker}`);
+      }
+    }
+  }
+
+  // reviewer / severity / cluster_id チェック
   const validReviewers = ["spec", "quality", "security"];
   if (!validReviewers.includes(entry.reviewer)) {
     throw new Error(`Invalid reviewer: ${entry.reviewer}. Must be one of: ${validReviewers.join(", ")}`);

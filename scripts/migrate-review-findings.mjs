@@ -11,11 +11,12 @@
  * 2. review-conventions.md に MANUAL/AUTO マーカーを挿入（冪等）
  */
 
-import { readFile, writeFile, rename } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 
 import {
   readFindings,
   writeFindingsAtomic,
+  writeFileAtomic,
   fileExists,
   computeMaxIdNum,
   MANUAL_START,
@@ -135,9 +136,7 @@ async function migrateConventions(conventionsPath) {
     `\n` +
     `${AUTO_START}\n${AUTO_END}\n`;
 
-  const tmpPath = `${conventionsPath}.tmp.${process.pid}`;
-  await writeFile(tmpPath, newContent, "utf-8");
-  await rename(tmpPath, conventionsPath);
+  await writeFileAtomic(conventionsPath, newContent);
 
   return true;
 }

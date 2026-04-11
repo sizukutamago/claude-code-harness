@@ -1,7 +1,7 @@
 ---
-status: Approved
+status: Completed
 owner: sizukutamago
-last_updated: 2026-04-11
+last_updated: 2026-04-09
 ---
 
 # REQ-001: review-memory — 実装計画
@@ -214,3 +214,20 @@ Task-8 (Phase 0 統合) ─→ Task-9
 5. **テストディレクトリ**: `scripts/__tests__/` を採用（eval/fixtures 内の慣例に合わせる）
 6. **Node.js 標準のみ**: 外部依存なし。`node:test`, `node:assert`, `node:fs/promises`, `node:path` のみを使う
 7. **Task-2 と Task-4 の並列編集**: Wave 2 で同一ファイルを触る場合、関数シグネチャを先に定義してマージ競合を回避する
+
+## 完了状況
+
+| タスク | 状態 | 備考 |
+|--------|------|------|
+| Task-1: JSONL 読み書き基盤 + 関数スケルトン | 完了 | |
+| Task-2: クラスタ集計・代表抽出 | 完了 | |
+| Task-3: 昇格ロジック（原子的3段階） | 完了 | |
+| Task-4: conventions.md 整形 | 完了 | |
+| Task-5: CLI エントリポイント | 完了 | |
+| Task-6: migrate-review-findings.mjs | 完了 | |
+| Task-7: review-memory-curator エージェント定義 | 完了 | |
+| Task-8: code-review Phase 0 統合 | 完了 | |
+| Task-9: code-review Phase 2 統合 | 完了 | |
+| Task-10: マイグレーション実行と統合確認 | 完了 | 103 tests GREEN、verification PASS |
+
+全タスク完了。103 node:test テスト全 GREEN。
