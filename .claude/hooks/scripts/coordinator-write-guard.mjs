@@ -32,6 +32,10 @@ const WHITELIST = [
   /\/HANDOVER\.md$/,      // HANDOVER.md
   /\/CLAUDE\.md$/,        // CLAUDE.md
   /\/requirements\//,     // requirements/ 配下（要件ドキュメントはメインセッションの責務）
+  // design/planning スキルがメインセッションに書かせる指示になっているため
+  /\/docs\/design\//,     // docs/design/ 配下（design.md はメインセッションの責務）
+  /\/docs\/decisions\//,  // docs/decisions/ 配下（ADR はメインセッションの責務）
+  /\/docs\/plans\//,      // docs/plans/ 配下（plan.md はメインセッションの責務）
 ];
 
 try {
