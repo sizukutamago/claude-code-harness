@@ -309,6 +309,7 @@ tmux 手順・起動方法・停止方法・トラブルシューティングを
 - **内容**: `https://github.com/snarktank/ralph` の LICENSE を確認し、vendor 取り込み（サブディレクトリとして git clone）が可能なライセンスであることを確認する
 - **期待**: MIT / Apache-2.0 / BSD 相当
 - **NG 時の対応**: 設計を「snarktank/ralph のコアロジックを参考に自前実装」に変更。ADR-0015 も再検討が必要
+- **解消状況（Phase 1 完了時点）**: クリア。詳細は `requirements/REQ-002-meta-loop-foundation/pc-gates.md` を参照
 
 ### PC-2: `claude --print --dangerously-skip-permissions` の smoke test
 
@@ -318,12 +319,14 @@ tmux 手順・起動方法・停止方法・トラブルシューティングを
   ```
 - **期待**: 1回の実行で stdout に応答が出て正常終了する（permission prompt に詰まらない）
 - **NG 時の対応**: Phase 1 の FR-2 実現方式そのものを見直す。Claude Code CLI のバージョンアップを待つ or 代替の呼び出し方を採用
+- **解消状況（Phase 1 完了時点）**: クリア。詳細は `requirements/REQ-002-meta-loop-foundation/pc-gates.md` を参照
 
 ### PC-3: workspace/ec-sample/.claude の symlink と hook の相性検証
 
 - **内容**: 手動で `workspace/ec-sample/.claude -> ../../.claude` の symlink を作り、`workspace/ec-sample/` 内で Claude Code を起動して Edit/Write を試す。coordinator-write-guard が想定通り動作するか確認
 - **期待**: symlink 経由でも guard のホワイトリストパターンが一致し、開発者がハーネス改善対象（.claude/, docs/design/, docs/decisions/, docs/plans/, requirements/, CLAUDE.md 等）を書けること
 - **NG 時の対応**: hook スクリプトを symlink 解決対応にする（realpath で実体パスに正規化）
+- **解消状況（Phase 1 完了時点）**: クリア。詳細は `requirements/REQ-002-meta-loop-foundation/pc-gates.md` を参照
 
 ## テスト戦略
 

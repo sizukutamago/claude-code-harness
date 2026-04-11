@@ -25,6 +25,11 @@ _exclude:
   # 導入先に不要な md（.claude/ 内は除く）
   - "*.md"
   - "!.claude/**/*.md"
+  # meta-loop foundation (REQ-002)
+  - "runner/meta-loop"
+  - "runner/meta-loop/**"
+  - "workspace"
+  - "workspace/**"
 
 _skip_if_exists:
   - CLAUDE.md

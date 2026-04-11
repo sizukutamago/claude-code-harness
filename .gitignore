@@ -29,3 +29,7 @@ eval/workdirs/
 
 # Playwright test results
 test-results/
+
+# meta-loop foundation (REQ-002)
+workspace/
+runner/meta-loop/vendor/

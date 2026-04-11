@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Done
 owner: sizukutamago
 last_updated: 2026-04-12
 ---
@@ -20,7 +20,7 @@ last_updated: 2026-04-12
 
 ## タスク一覧
 
-### Task-1: test/helpers.bash と fixtures の整備
+### Task-1: test/helpers.bash と fixtures の整備 [done]
 - **やること**: bats テスト共通ヘルパー（一時 HOME/workspace 作成、claude/tmux/git モックの PATH 差し込み、ログ assertion ユーティリティ）と最小 fixture（ダミー `.claude/rules/test-rule.md`、fake-claude/tmux/git バイナリスタブ）を用意
 - **対応FR**: 横断（テスト基盤）
 - **依存**: なし
@@ -39,7 +39,7 @@ last_updated: 2026-04-12
 - **fake-git.sh 仕様**: `FAKE_GIT_EXIT_CODE`/`FAKE_GIT_LOG_FILE` で制御
 - **完了条件**: helpers.bash を load する smoke bats が 1 本 GREEN、fake-claude/tmux/git が各仕様通り動作する unit-style bats 3 本 GREEN
 
-### Task-2: lib/state.sh（失敗カウンタ操作）
+### Task-2: lib/state.sh（失敗カウンタ操作） [done]
 - **やること**: `.meta-loop-state` の読み書き。`state_read <key>` / `state_increment_failure <path>` / `state_reset_failure <path>`。書き戻しは tmp + mv で原子的に。存在しないキーは 0 扱い
 - **対応FR**: FR-5, FR-6 の下敷き
 - **依存**: Task-1
@@ -48,7 +48,7 @@ last_updated: 2026-04-12
   - `runner/meta-loop/test/state.bats`
 - **完了条件**: 5 ケース GREEN（初期値/increment/reset/KEY=VALUE 保全/原子性）
 
-### Task-3: lib/archive.sh（workspace 退避）
+### Task-3: lib/archive.sh（workspace 退避） [done]
 - **やること**: `archive_workspace <workspace-path> <archive-root>` で `<archive-root>/<timestamp>/` に mv。タイムスタンプ衝突時は連番 suffix。対象不在で非 0
 - **対応FR**: FR-7 / AC-7 の下敷き
 - **依存**: Task-1
@@ -57,7 +57,7 @@ last_updated: 2026-04-12
   - `runner/meta-loop/test/archive.bats`
 - **完了条件**: 4 ケース GREEN（正常退避/ファイル揃い/タイムスタンプ衝突 suffix/不在時エラー）
 
-### Task-4: lib/invoker.sh（claude --print 起動ラッパー）
+### Task-4: lib/invoker.sh（claude --print 起動ラッパー） [done]
 - **やること**: `invoker_build_prompt <target>` でプロンプトを構築、`invoker_run <target>` で `claude --print` を exec。終了コードはそのまま伝搬
 - **対応FR**: FR-2 の下敷き
 - **依存**: Task-1
@@ -66,7 +66,7 @@ last_updated: 2026-04-12
   - `runner/meta-loop/test/invoker.bats`
 - **完了条件**: 4 ケース GREEN（build_prompt 内容/fake-claude 0 終了/非 0 伝搬/claude 不在 127）
 
-### Task-5: bootstrap.sh（vendor/ralph 取り込み）
+### Task-5: bootstrap.sh（vendor/ralph 取り込み） [done]
 - **やること**: `runner/meta-loop/vendor/ralph/` が不在なら `git clone https://github.com/snarktank/ralph` 実行。既存なら 0 終了（冪等）。clone 失敗で 2、git 欠如で 2
 - **対応FR**: FR-1 / AC-1
 - **依存**: Task-1
@@ -76,7 +76,7 @@ last_updated: 2026-04-12
 - **完了条件**: 4 ケース GREEN（初回作成 with git スタブ/冪等/clone 失敗伝搬/git 不在）
 - **注**: 実 `git clone` は走らせない。PATH 先頭の git スタブに置き換える
 
-### Task-6: init-workspace.sh（workspace 生成 + symlink + 初期コミット）
+### Task-6: init-workspace.sh（workspace 生成 + symlink + 初期コミット） [done]
 - **やること**: `workspace/ec-sample/` 作成、`.claude`/`modules` symlink、`git init`、初期 `progress.txt`、`.meta-loop-state` (consecutive_failures=0)、初期コミット。`--force` で既存削除→再生成
 - **対応FR**: FR-3 / AC-2, AC-3
 - **依存**: Task-2, **PC-3 クリア済みであること**（SHOULD-3 解決: symlink と hook の相性が NG だと本タスクの設計が変わる）
@@ -92,7 +92,7 @@ last_updated: 2026-04-12
   6. 既存ディレクトリがある状態で再実行すると `--force` なしでは非 0 終了
   7. **AC-3 対応**: fixtures/sample-rule.md をハーネスルートの `.claude/rules/` に配置した状態で init-workspace 実行後、`cat workspace/ec-sample/.claude/rules/sample-rule.md` が同じ内容を返す（symlink 経由で実ファイル読み取りが機能することを確認）
 
-### Task-7: meta-loop.sh（1 イテレーション駆動）
+### Task-7: meta-loop.sh（1 イテレーション駆動） [done]
 - **やること**: `--target <path> [--max-iter N]` を受け取り、invoker で claude 1 回起動、state を更新。成功 → reset、失敗 → increment、failures>=3 で exit 3。stdout/stderr は親に流す
 - **対応FR**: FR-2, FR-5, FR-6
 - **依存**: Task-2, Task-4
@@ -108,7 +108,7 @@ last_updated: 2026-04-12
   6. target 配下に `.meta-loop-state` がない場合は 0 から始める
   7. `--max-iter 1` で 1 回実行して exit 0（成功時）
 
-### Task-8: reset.sh（アーカイブ + 再初期化）
+### Task-8: reset.sh（アーカイブ + 再初期化） [done]
 - **やること**: `tmux has-session -t meta-loop-ec` が 0 なら exit 2。未稼働なら archive.sh → init-workspace.sh --force
 - **対応FR**: FR-7 / AC-7
 - **依存**: Task-3, Task-6
@@ -118,7 +118,7 @@ last_updated: 2026-04-12
 - **完了条件**: 3 ケース GREEN（tmux ありで exit 2/tmux なしで archive + init-workspace 呼び出し/再生成確認）
 - **テスト戦略（CONSIDER-3 解決）**: `fake-tmux.sh`（Task-1 で整備）を helpers.bash の `path_stub tmux` で PATH 先頭に差し込む。`FAKE_TMUX_SESSIONS="meta-loop-ec"` で稼働中シナリオ、空で未稼働シナリオを切り替える。実 tmux は一切使わない
 
-### Task-9: start-tmux.sh（tmux 常駐 + while ループ + pipe-pane）
+### Task-9: start-tmux.sh（tmux 常駐 + while ループ + pipe-pane） [done]
 - **やること**: `tmux new-session -d -s meta-loop-ec` + pipe-pane で meta-loop.log 追記 + send-keys で while ループ（exit 3 break / 非 0 で sleep 10）
 - **対応FR**: FR-4, FR-5, FR-6
 - **依存**: Task-7
@@ -134,7 +134,7 @@ last_updated: 2026-04-12
 - **テスト戦略（CONSIDER-3 解決）**: Task-8 と同じく `fake-tmux.sh` を helpers.bash の `path_stub tmux` で PATH 先頭に差し込む。実 tmux は使わない
 - **注**: tmux の実挙動（AC-4 の 8 時間生存）は verification フェーズで人手
 
-### Task-10: .gitignore と copier.yml _exclude 更新
+### Task-10: .gitignore と copier.yml _exclude 更新 [done]
 - **やること**: ルート `.gitignore` に `workspace/` と `runner/meta-loop/vendor/` を追加。`copier.yml` の `_exclude` に `runner/meta-loop`, `runner/meta-loop/**`, `workspace`, `workspace/**` を追加
 - **対応FR**: AC-8, AC-9
 - **依存**: なし（並列可）
@@ -144,7 +144,7 @@ last_updated: 2026-04-12
   - `runner/meta-loop/test/config.bats`（gitignore/copier.yml のパターン確認）
 - **完了条件**: 2 ケース GREEN（.gitignore grep hit/copier.yml _exclude 内容）
 
-### Task-11: runner/meta-loop/README.md と docs/guides/continuous-operation.md
+### Task-11: runner/meta-loop/README.md と docs/guides/continuous-operation.md [done]
 - **やること**:
   - `runner/meta-loop/README.md`: スクリプト一覧・起動順・exit code 表
   - `docs/guides/continuous-operation.md`: tmux 起動手順・ログの見方・連続失敗停止時の復旧・reset.sh 使い方（sleep 10 中の kill 応答ラグ注意書きを含む、設計レビュー CONSIDER-B 対応）、Copier 配布除外の説明（Task-10 の結果）

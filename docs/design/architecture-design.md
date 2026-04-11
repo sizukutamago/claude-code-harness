@@ -843,6 +843,7 @@ claude -p --output-format stream-json --verbose
 - [x] タスク規模別ワークフロー（Tiny/Small/Normal/Large）
 - [x] RALPH Runner v1（外部オーケストレーター）の実装（runner/ 配下、152 bats テスト GREEN）
 - [x] review-memory（コードレビューのフィードバックループ）の実装（scripts/review-memory.mjs、103 node:test GREEN）
+- [x] メタループ駆動基盤 Phase 1 の実装（runner/meta-loop/ 配下、94 bats テスト GREEN）— snarktank/ralph vendor 取り込み、tmux 常駐、workspace/ec-sample/ dogfood 環境。Copier 配布対象外（開発者専用）。設計書: docs/design/meta-loop-foundation.md
 
 ### 後で設計するもの
 - [ ] CI/CD 統合（PRごとのeval自動実行）

@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: done
 owner: sizukutamago
 last_updated: 2026-04-12
 ---
@@ -70,7 +70,7 @@ last_updated: 2026-04-12
 - **出力**: 1イテレーション実行後の progress.txt 更新、git commit、stdout/stderr のログ
 - **異常系**:
   - IF Claude Code 起動自体が失敗した場合、システムは失敗コードを返しイテレーションを中断しなければならない
-  - IF progress.txt が存在しない場合、システムは初期 progress.txt を生成して開始しなければならない
+  - IF progress.txt が存在しない場合、システムは「init-workspace.sh 未実行」として exit 2 で終了し、stderr に init-workspace.sh を先に実行する案内を出さなければならない（初期 progress.txt の生成責務は `init-workspace.sh` に一元化する。設計レビュー SHOULD-1 で決定、ADR 代替案として docs/plans/meta-loop-foundation-plan.md に記録）
 
 ### FR-3: EC サンプル作業ディレクトリの初期化
 
