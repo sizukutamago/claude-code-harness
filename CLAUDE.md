@@ -111,6 +111,15 @@ State:   .claude/harness/review-memory/conventions-state.jsonl
 - 意思決定記録: `docs/decisions/`
 - eval 移行メモ: `docs/decisions/0005-eval-v2-migration.md`
 
+## Verification Evidence (last-verification.json)
+
+`[9] 完了検証` ステップの証拠ファイル。`verification-gate.mjs` フックが `git commit` 前に参照する。詳細スキーマは `.claude/skills/verification/SKILL.md` を参照。
+
+- 配置: `.claude/harness/last-verification.json`
+- 有効期限: 2時間（verification-gate.mjs）
+- 必須フィールド: `status`, `timestamp`, `req_path`, `evidence_type`, `evidence_paths`, `reason`
+- `evidence_type`: `test_run` | `integration_test` | `report`
+
 ## Workflow (12 Steps)
 
 ワークフロー定義・タスク規模別ルール・Invariants・Policies は `.claude/rules/workflow.md` に定義。
