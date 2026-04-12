@@ -49,6 +49,20 @@ ${progress_content}
 ## 終了時の必須アクション
 
 終了時に \`${target_dir}/progress.txt\` を更新し git commit すること。
+
+## 各 Story 完了後の必須アクション（観察レビュー）
+
+Story を 1 つ完了し git commit した後、**必ず以下の観察レビューを実行してから終了すること。これをスキップしてはならない。**
+
+1. product-user-reviewer エージェントを dispatch する:
+   - プロンプト: 「${target_dir} の直近のコミットで追加/変更された機能を、エンドユーザー視点でレビューしてください。発見を .claude/harness/observation-log.jsonl に JSON 形式で追記してください。形式: {"timestamp":"ISO8601","observer":"product-user-reviewer","category":"uiux|spec|error|data|a11y","severity":"critical|warning|info","finding":"発見内容","file":"対象ファイル","recommendation":"推奨アクション"}」
+
+2. harness-user-reviewer エージェントを dispatch する:
+   - プロンプト: 「.claude/ 配下のスキル・ルール・エージェント・hooks の整合性を、ハーネスを導入するチームメンバーの視点でレビューしてください。発見を .claude/harness/observation-log.jsonl に JSON 形式で追記してください。形式は product-user-reviewer と同じで observer を "harness-user-reviewer" にしてください。」
+
+3. progress.txt の Learnings セクションに、観察レビューで見つかった critical/warning の要約を追記する
+
+**Story の実装だけ完了して観察レビューをスキップした場合、そのイテレーションは未完了とみなす。**
 PROMPT
 }
 

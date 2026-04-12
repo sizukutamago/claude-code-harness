@@ -126,3 +126,45 @@ teardown() {
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}" --max-iter 1
   [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# TC-9: --observe-every option is parsed (default 5)
+# ---------------------------------------------------------------------------
+@test "TC-9: --observe-every default is 5 (no option exits 0)" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+  # Should succeed without error when no --observe-every given
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
+  [ "$status" -eq 0 ]
+}
+
+@test "TC-9b: --observe-every 3 is accepted without error" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}" --observe-every 3
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# TC-10: run_post_observation is called when observation-log is empty
+# ---------------------------------------------------------------------------
+@test "TC-10: second claude call is made when observation-log is empty after success" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+  local log_file="${BATS_TEST_TMPDIR}/claude-calls.log"
+  export FAKE_CLAUDE_LOG_FILE="${log_file}"
+
+  # Ensure observation-log does not exist (empty case)
+  local obs_dir="${MLTEST_WORKSPACE}/../.claude/harness"
+  # target/../.claude/harness/observation-log.jsonl
+  # MLTEST_WORKSPACE is a leaf dir; create parent structure
+  local parent_dir
+  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
+  mkdir -p "${parent_dir}/.claude/harness"
+  # observation-log does not exist (0 entries case)
+
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
+  [ "$status" -eq 0 ]
+
+  # At least 2 calls should be logged: 1 main invoker + 1 post_observation
+  local call_count
+  call_count="$(wc -l < "${log_file}" | tr -d ' ')"
+  [ "${call_count}" -ge 2 ]
+}

@@ -100,3 +100,36 @@ setup() {
   run invoker_run "${target_dir}"
   [ "$status" -ne 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# invoker_build_prompt: observation-log.jsonl keyword is present
+# ---------------------------------------------------------------------------
+
+@test "invoker_build_prompt contains observation-log.jsonl keyword" {
+  local target_dir="${MLTEST_WORKSPACE}"
+  run invoker_build_prompt "${target_dir}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"observation-log.jsonl"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# invoker_build_prompt: product-user-reviewer keyword is present
+# ---------------------------------------------------------------------------
+
+@test "invoker_build_prompt contains product-user-reviewer keyword" {
+  local target_dir="${MLTEST_WORKSPACE}"
+  run invoker_build_prompt "${target_dir}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"product-user-reviewer"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# invoker_build_prompt: harness-user-reviewer keyword is present
+# ---------------------------------------------------------------------------
+
+@test "invoker_build_prompt contains harness-user-reviewer keyword" {
+  local target_dir="${MLTEST_WORKSPACE}"
+  run invoker_build_prompt "${target_dir}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"harness-user-reviewer"* ]]
+}

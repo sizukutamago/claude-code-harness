@@ -4,11 +4,12 @@
 # 1 イテレーション（1 回の Claude Code 起動 + state 更新）を実行するスクリプト。
 #
 # Usage:
-#   meta-loop.sh --target <path> [--max-iter N]
+#   meta-loop.sh --target <path> [--max-iter N] [--observe-every N]
 #
 # Arguments:
-#   --target <path>   (required) Target workspace directory
-#   --max-iter N      (optional) Run N iterations then exit 0. Default: run once.
+#   --target <path>      (required) Target workspace directory
+#   --max-iter N         (optional) Run N iterations then exit 0. Default: run once.
+#   --observe-every N    (optional) Run meta-observer every N iterations. Default: 5.
 #
 # Exit codes:
 #   0  Normal completion (1 iteration or --max-iter N completed)
@@ -31,11 +32,12 @@ source "${SCRIPT_DIR}/lib/invoker.sh"
 # parse_args
 #
 # Parse command-line arguments.
-# Sets: target, max_iter
+# Sets: target, max_iter, observe_every
 # ---------------------------------------------------------------------------
 parse_args() {
   target=""
   max_iter=""
+  observe_every=5
 
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -53,6 +55,14 @@ parse_args() {
           exit 1
         fi
         max_iter="$2"
+        shift 2
+        ;;
+      --observe-every)
+        if [ -z "${2:-}" ]; then
+          echo "[meta-loop] error: --observe-every requires a number argument" >&2
+          exit 1
+        fi
+        observe_every="$2"
         shift 2
         ;;
       *)
@@ -86,6 +96,90 @@ check_preconditions() {
 }
 
 # ---------------------------------------------------------------------------
+# run_post_observation <target>
+#
+# Fallback: if observation-log.jsonl is empty (0 entries), forcibly invoke
+# claude to run product-user-reviewer and harness-user-reviewer observations.
+# Best-effort: failures do not affect the main loop (caller uses || true).
+# ---------------------------------------------------------------------------
+run_post_observation() {
+  local target="$1"
+  local parent_dir
+  parent_dir="$(dirname "${target}")"
+  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local claude_bin="${META_LOOP_CLAUDE_BIN:-claude}"
+
+  # If observation-log has at least 1 entry, skip (invoker already did it)
+  if [ -f "${obs_log}" ]; then
+    local before_count
+    before_count="$(wc -l < "${obs_log}" | tr -d ' ')"
+    if [ "${before_count}" -gt 0 ]; then
+      return 0
+    fi
+  fi
+
+  echo "[meta-loop] observation-log が空のため、強制的に観察レビューを実行します" >&2
+
+  cat <<OBS_PROMPT | "${claude_bin}" --print --dangerously-skip-permissions || true
+あなたは ${target} プロジェクトの観察レビューを実行してください。
+
+1. product-user-reviewer として: ${target} の直近のコミットで追加された機能を、エンドユーザー視点で 3 点以上指摘してください。
+2. harness-user-reviewer として: .claude/ 配下のスキル・ルール・エージェントの整合性を 3 点以上指摘してください。
+
+各指摘を .claude/harness/observation-log.jsonl に以下の JSON 形式で追記してください（1行1エントリ）:
+{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","observer":"product-user-reviewer または harness-user-reviewer","category":"uiux|spec|error|data|a11y|workflow|consistency|enforcement|docs|agent-design","severity":"critical|warning|info","finding":"発見内容","file":"対象ファイルパス","recommendation":"推奨アクション"}
+
+最低 6 エントリ（product 3 + harness 3）を追記してから終了してください。
+OBS_PROMPT
+}
+
+# ---------------------------------------------------------------------------
+# run_meta_observation <target>
+#
+# Periodic (every observe_every iterations) meta-observer run.
+# Reviews L2 observation results and adds meta-level findings.
+# Best-effort: failures do not affect the main loop (caller uses || true).
+# ---------------------------------------------------------------------------
+run_meta_observation() {
+  local target="$1"
+  local parent_dir
+  parent_dir="$(dirname "${target}")"
+  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local obs_points="${parent_dir}/.claude/harness/observation-points.yaml"
+  local claude_bin="${META_LOOP_CLAUDE_BIN:-claude}"
+
+  echo "[meta-loop] meta-observer を実行します（${observe_every} イテレーションごとの定期実行）" >&2
+
+  local obs_content=""
+  if [ -f "${obs_log}" ]; then
+    obs_content="$(tail -50 "${obs_log}")"
+  fi
+
+  local points_content=""
+  if [ -f "${obs_points}" ]; then
+    points_content="$(cat "${obs_points}")"
+  fi
+
+  cat <<META_PROMPT | "${claude_bin}" --print --dangerously-skip-permissions || true
+あなたは meta-observer（神エージェント）として、L2 監視層のレビュー結果をメタ的にレビューしてください。
+
+## observation-log.jsonl（直近50件）
+${obs_content}
+
+## observation-points.yaml
+${points_content}
+
+## やること
+1. L2 エージェント（product-user-reviewer, harness-user-reviewer）が見落としている観点を特定
+2. 長期間 finding が出ていない観点の陳腐化を指摘
+3. 新しい観点の提案（最大 3 件）
+
+結果を .claude/harness/observation-log.jsonl に追記してください:
+{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","observer":"meta-observer","category":"coverage|staleness|overlap|discovery|prompt-quality","severity":"critical|warning|info","finding":"発見内容","recommendation":"推奨アクション"}
+META_PROMPT
+}
+
+# ---------------------------------------------------------------------------
 # run_iteration <target> <iter_num>
 #
 # Run one iteration:
@@ -107,6 +201,7 @@ run_iteration() {
 
   if invoker_run "${target}"; then
     state_reset_failure "${state_file}"
+    run_post_observation "${target}" || true
     iter_result=0
   else
     iter_exit=$?
@@ -140,6 +235,10 @@ main() {
       run_iteration "${target}" "${i}" || iter_code=$?
       if [ "${iter_code}" -ne 0 ]; then
         exit "${iter_code}"
+      fi
+      # Run meta-observer every observe_every iterations
+      if [ $(( i % observe_every )) -eq 0 ]; then
+        run_meta_observation "${target}" || true
       fi
       i=$(( i + 1 ))
     done
