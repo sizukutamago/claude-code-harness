@@ -134,6 +134,78 @@ OBS_PROMPT
 }
 
 # ---------------------------------------------------------------------------
+# run_auto_fix <target>
+#
+# Periodic (every observe_every iterations) auto-fix run.
+# Reads critical/warning entries from observation-log.jsonl and invokes claude
+# to apply fixes via the implementer agent.
+# Best-effort: failures do not affect the main loop (caller uses || true).
+# ---------------------------------------------------------------------------
+run_auto_fix() {
+  local target="$1"
+  local parent_dir
+  parent_dir="$(dirname "${target}")"
+  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local claude_bin="${META_LOOP_CLAUDE_BIN:-claude}"
+
+  # critical/warning エントリを抽出
+  local findings=""
+  if [ -f "${obs_log}" ]; then
+    findings="$(grep -E '"severity":"(critical|warning)"' "${obs_log}" 2>/dev/null || true)"
+  fi
+
+  if [ -z "${findings}" ]; then
+    echo "[meta-loop] observation-log に修正対象の指摘なし、スキップ" >&2
+    return 0
+  fi
+
+  local finding_count
+  finding_count="$(echo "${findings}" | wc -l | tr -d ' ')"
+  echo "[meta-loop] observation-log の指摘 ${finding_count} 件を自動修正します" >&2
+
+  cat <<FIX_PROMPT | "${claude_bin}" --print --dangerously-skip-permissions || true
+あなたは ${target} プロジェクトとハーネス（.claude/ 配下）の自動修正を実行してください。
+
+## 重要な制約
+- **全ての Edit/Write は implementer エージェントに dispatch する**
+- 修正後に対応するテストが GREEN のままであることを確認する
+- 修正できない指摘（設計判断が必要、スコープ外等）はスキップし、理由を progress.txt の Learnings に記録する
+
+## 修正対象の指摘（observation-log.jsonl の critical/warning）
+
+${findings}
+
+## やること
+1. 各指摘の recommendation を読み、implementer に修正を dispatch する
+2. 修正後にテストを実行して GREEN を確認する
+3. 修正した指摘について、observation-log.jsonl の該当エントリを削除するか、別途 resolved マーカーを付ける必要はない（次の archive で一括クリアされる）
+4. 全修正完了後に git commit する（メッセージ: "fix: observation-log 指摘の自動修正 (N件)"）
+5. progress.txt の Learnings に「自動修正で何を直したか」を追記する
+FIX_PROMPT
+}
+
+# ---------------------------------------------------------------------------
+# run_auto_archive <target>
+#
+# Periodic (every observe_every iterations) archive run.
+# Appends current observation-log.jsonl to archive and truncates it.
+# Best-effort: failures do not affect the main loop (caller uses || true).
+# ---------------------------------------------------------------------------
+run_auto_archive() {
+  local target="$1"
+  local parent_dir
+  parent_dir="$(dirname "${target}")"
+  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local archive_log="${parent_dir}/.claude/harness/observation-log-archive.jsonl"
+
+  if [ -f "${obs_log}" ] && [ -s "${obs_log}" ]; then
+    cat "${obs_log}" >> "${archive_log}"
+    : > "${obs_log}"
+    echo "[meta-loop] observation-log をアーカイブしました" >&2
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # run_meta_observation <target>
 #
 # Periodic (every observe_every iterations) meta-observer run.
@@ -236,8 +308,10 @@ main() {
       if [ "${iter_code}" -ne 0 ]; then
         exit "${iter_code}"
       fi
-      # Run meta-observer every observe_every iterations
+      # Run auto-fix, archive, and meta-observer every observe_every iterations
       if [ $(( i % observe_every )) -eq 0 ]; then
+        run_auto_fix "${target}" || true
+        run_auto_archive "${target}" || true
         run_meta_observation "${target}" || true
       fi
       i=$(( i + 1 ))
@@ -253,6 +327,8 @@ main() {
       local total
       total="$(state_read "${state_file}" "total_iterations")"
       if [ "${observe_every}" -gt 0 ] && [ "$(( total % observe_every ))" -eq 0 ]; then
+        run_auto_fix "${target}" || true
+        run_auto_archive "${target}" || true
         run_meta_observation "${target}" || true
       fi
     fi

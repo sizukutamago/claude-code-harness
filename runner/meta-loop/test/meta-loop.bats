@@ -284,3 +284,94 @@ teardown() {
   total="$(grep -E '^total_iterations=' "${state_file}" | tail -1 | awk -F= '{print $2}')"
   [ "${total}" = "5" ]
 }
+
+# ---------------------------------------------------------------------------
+# TC-12: run_auto_fix が 5 イテレーション目に実行される
+# ---------------------------------------------------------------------------
+@test "TC-12: run_auto_fix is called on 5th total iteration when observation-log has critical entries" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+  local log_file="${BATS_TEST_TMPDIR}/claude-calls.log"
+  export FAKE_CLAUDE_LOG_FILE="${log_file}"
+
+  # Pre-set total_iterations=4 so this run becomes the 5th
+  local state_file="${MLTEST_WORKSPACE}/.meta-loop-state"
+  printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
+
+  # Set up observation-log with a critical entry
+  local parent_dir
+  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
+  mkdir -p "${parent_dir}/.claude/harness"
+  echo '{"timestamp":"2025-01-01T00:00:00Z","observer":"harness-user-reviewer","severity":"critical","finding":"test","recommendation":"fix it"}' \
+    > "${parent_dir}/.claude/harness/observation-log.jsonl"
+
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
+  [ "$status" -eq 0 ]
+
+  # At least 3 calls: 1 (invoker) + 1 (auto_fix) + 1 (meta_observation)
+  local call_count
+  call_count="$(wc -l < "${log_file}" | tr -d ' ')"
+  [ "${call_count}" -ge 3 ]
+}
+
+# ---------------------------------------------------------------------------
+# TC-13: observation-log が空のとき run_auto_fix はスキップ（claude 呼び出しなし）
+# ---------------------------------------------------------------------------
+@test "TC-13: run_auto_fix is skipped when observation-log has no critical/warning entries" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+  local log_file="${BATS_TEST_TMPDIR}/claude-calls.log"
+  export FAKE_CLAUDE_LOG_FILE="${log_file}"
+
+  # Pre-set total_iterations=4 so this run becomes the 5th
+  local state_file="${MLTEST_WORKSPACE}/.meta-loop-state"
+  printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
+
+  # Set up observation-log with only an info entry (no critical/warning)
+  local parent_dir
+  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
+  mkdir -p "${parent_dir}/.claude/harness"
+  echo '{"timestamp":"2025-01-01T00:00:00Z","observer":"meta-observer","severity":"info","finding":"all good"}' \
+    > "${parent_dir}/.claude/harness/observation-log.jsonl"
+
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
+  [ "$status" -eq 0 ]
+
+  # Only 2 calls: 1 (invoker) + 1 (meta_observation) — auto_fix skipped
+  local call_count
+  call_count="$(wc -l < "${log_file}" | tr -d ' ')"
+  [ "${call_count}" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# TC-14: run_auto_archive が実行後に observation-log を空にする
+# ---------------------------------------------------------------------------
+@test "TC-14: run_auto_archive empties observation-log and appends to archive" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+
+  # Pre-set total_iterations=4 so this run becomes the 5th
+  local state_file="${MLTEST_WORKSPACE}/.meta-loop-state"
+  printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
+
+  # Set up observation-log with 3 entries
+  local parent_dir
+  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
+  mkdir -p "${parent_dir}/.claude/harness"
+  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local archive_log="${parent_dir}/.claude/harness/observation-log-archive.jsonl"
+  printf '{"severity":"critical","finding":"a"}\n{"severity":"warning","finding":"b"}\n{"severity":"info","finding":"c"}\n' \
+    > "${obs_log}"
+
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
+  [ "$status" -eq 0 ]
+
+  # observation-log.jsonl should be empty (0 bytes) after archive
+  [ -f "${obs_log}" ]
+  local obs_size
+  obs_size="$(wc -c < "${obs_log}" | tr -d ' ')"
+  [ "${obs_size}" -eq 0 ]
+
+  # observation-log-archive.jsonl should have at least 3 lines
+  [ -f "${archive_log}" ]
+  local archive_count
+  archive_count="$(wc -l < "${archive_log}" | tr -d ' ')"
+  [ "${archive_count}" -ge 3 ]
+}
