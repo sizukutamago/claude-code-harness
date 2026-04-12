@@ -97,9 +97,15 @@ tmux kill-session -t meta-loop-ec
 
 メタループ内で fresh spawn される Claude Code は、`.claude/` を symlink 経由で参照した状態で coordinator セッションとして振る舞う。`.claude/hooks/scripts/coordinator-write-guard.mjs` により、メインセッションが直接コードを書こうとするとブロックされる。ハーネス改善も EC サンプル実装も、全て implementer サブエージェントに dispatch する必要がある。
 
-### API コスト
+### サブスクリプション使用量の消費
 
-メタループは寝てる間も Claude Code を fresh spawn し続けるため、1 晩で数 USD〜数十 USD のコストがかかる可能性がある。Phase 1 ではコスト上限の自動停止は未実装。運用者は定期的に Anthropic API の使用量ダッシュボードを確認すること。将来 Phase 2 以降でコスト監視機構を追加予定。
+メタループは Claude Code CLI（`claude --print --dangerously-skip-permissions`）を fresh spawn し続けるため、Anthropic API ではなく **Claude Pro / Max のサブスクリプション使用量**（メッセージ数・レートリミット枠）を消費する。API キーベースの従量課金ではないため Anthropic コンソールには現れないが、以下の副作用に注意:
+
+- **サブスクリプションの使用量上限に到達する可能性**: 寝てる間 8 時間ループすると Pro/Max の一定時間あたりメッセージ数上限に達しうる。上限到達時は `claude --print` がエラー終了し、meta-loop.sh が失敗カウントを上げる → 3 連続失敗で `exit 3` で自動停止する（設計通り）
+- **並走セッションとの干渉**: cmux 等で別の Claude Code セッション（対話用など）が動いていると、同じサブスクアカウントの枠を奪い合う。寝る前に普段使いのセッションを終了することを推奨
+- **翌朝の副作用**: 寝てる間ループで枠を使い切ると、起床後の普段使いの Claude が一時的に使えないことがある
+
+将来 Phase 2 以降でサブスクリプション使用量の監視機構を追加予定。
 
 ### 壊れたワークスペースの復旧
 

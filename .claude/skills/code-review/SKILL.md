@@ -371,6 +371,21 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
    - 次回以降のレビューセッションで `review-conventions.md` から自動的に読み込まれる（Phase 0）
    - このセッションでの追加アクションは不要
 
+### Phase 2.5: 観察レビュー（多層観察アーキテクチャ連携）
+
+code-review の3観点レビュー完了後、以下の2エージェントを**並列で**ディスパッチする:
+
+1. **product-user-reviewer**: プロダクトユーザー目線でレビュー
+2. **harness-user-reviewer**: ハーネスユーザー目線でレビュー
+
+両エージェントは `.claude/harness/observation-log.jsonl` に結果を追記する。
+メインの3観点レビュー結果とは別管理。observation-log は次セッション開始時に observation-injection ルールで自動注入される。
+
+**dispatch 条件:**
+- product-user-reviewer: プロダクトコード（`.claude/` 外のコード）を変更した場合のみ
+- harness-user-reviewer: ハーネスコード（`.claude/` 配下）を変更した場合のみ
+- 両方変更した場合は両方 dispatch
+
 ### Phase 3: MUST 指摘の修正ループ
 
 3. **MUST 指摘を確認する**
