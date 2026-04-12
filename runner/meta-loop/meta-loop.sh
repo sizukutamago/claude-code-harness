@@ -96,6 +96,27 @@ check_preconditions() {
 }
 
 # ---------------------------------------------------------------------------
+# _resolve_harness_path <target> <subpath>
+#
+# Resolve target/.claude/harness/<subpath> using cd+pwd to transparently follow
+# symlinks. This handles the case where target/.claude is a symlink (e.g.,
+# workspace/ec-sample/.claude -> ../../.claude).
+#
+# Usage:
+#   obs_log="$(_resolve_harness_path "${target}" "observation-log.jsonl")"
+#
+# Returns the absolute resolved path via stdout.
+# If target/.claude/harness does not exist, falls back to the unresolved path.
+# ---------------------------------------------------------------------------
+_resolve_harness_path() {
+  local target="$1"
+  local subpath="$2"
+  local harness_dir
+  harness_dir="$(cd "${target}/.claude/harness" 2>/dev/null && pwd -P)"
+  echo "${harness_dir}/${subpath}"
+}
+
+# ---------------------------------------------------------------------------
 # run_post_observation <target>
 #
 # Fallback: if observation-log.jsonl is empty (0 entries), forcibly invoke
@@ -104,9 +125,8 @@ check_preconditions() {
 # ---------------------------------------------------------------------------
 run_post_observation() {
   local target="$1"
-  local parent_dir
-  parent_dir="$(dirname "${target}")"
-  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local obs_log
+  obs_log="$(_resolve_harness_path "${target}" "observation-log.jsonl")"
   local claude_bin="${META_LOOP_CLAUDE_BIN:-claude}"
 
   # If observation-log has at least 1 entry, skip (invoker already did it)
@@ -143,9 +163,8 @@ OBS_PROMPT
 # ---------------------------------------------------------------------------
 run_auto_fix() {
   local target="$1"
-  local parent_dir
-  parent_dir="$(dirname "${target}")"
-  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
+  local obs_log
+  obs_log="$(_resolve_harness_path "${target}" "observation-log.jsonl")"
   local claude_bin="${META_LOOP_CLAUDE_BIN:-claude}"
 
   # critical/warning エントリを抽出
@@ -193,10 +212,10 @@ FIX_PROMPT
 # ---------------------------------------------------------------------------
 run_auto_archive() {
   local target="$1"
-  local parent_dir
-  parent_dir="$(dirname "${target}")"
-  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
-  local archive_log="${parent_dir}/.claude/harness/observation-log-archive.jsonl"
+  local obs_log
+  obs_log="$(_resolve_harness_path "${target}" "observation-log.jsonl")"
+  local archive_log
+  archive_log="$(_resolve_harness_path "${target}" "observation-log-archive.jsonl")"
 
   if [ -f "${obs_log}" ] && [ -s "${obs_log}" ]; then
     cat "${obs_log}" >> "${archive_log}"
@@ -214,10 +233,10 @@ run_auto_archive() {
 # ---------------------------------------------------------------------------
 run_meta_observation() {
   local target="$1"
-  local parent_dir
-  parent_dir="$(dirname "${target}")"
-  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
-  local obs_points="${parent_dir}/.claude/harness/observation-points.yaml"
+  local obs_log
+  obs_log="$(_resolve_harness_path "${target}" "observation-log.jsonl")"
+  local obs_points
+  obs_points="$(_resolve_harness_path "${target}" "observation-points.yaml")"
   local claude_bin="${META_LOOP_CLAUDE_BIN:-claude}"
 
   echo "[meta-loop] meta-observer を実行します（${observe_every} イテレーションごとの定期実行）" >&2

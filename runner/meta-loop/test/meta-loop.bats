@@ -151,13 +151,8 @@ teardown() {
   local log_file="${BATS_TEST_TMPDIR}/claude-calls.log"
   export FAKE_CLAUDE_LOG_FILE="${log_file}"
 
-  # Ensure observation-log does not exist (empty case)
-  local obs_dir="${MLTEST_WORKSPACE}/../.claude/harness"
-  # target/../.claude/harness/observation-log.jsonl
-  # MLTEST_WORKSPACE is a leaf dir; create parent structure
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
+  # Ensure target/.claude/harness exists but observation-log does not (empty case)
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
   # observation-log does not exist (0 entries case)
 
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
@@ -182,10 +177,8 @@ teardown() {
   printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
 
   # Set up observation-log with content so post_observation is skipped
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
-  echo '{"observer":"dummy"}' > "${parent_dir}/.claude/harness/observation-log.jsonl"
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
+  echo '{"observer":"dummy"}' > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
 
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
   [ "$status" -eq 0 ]
@@ -208,10 +201,8 @@ teardown() {
   export FAKE_CLAUDE_LOG_FILE="${log_file}"
 
   # Set up observation-log with content so post_observation is skipped
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
-  echo '{"observer":"dummy"}' > "${parent_dir}/.claude/harness/observation-log.jsonl"
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
+  echo '{"observer":"dummy"}' > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
 
   # No state file (total_iterations=0 by default)
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
@@ -237,10 +228,8 @@ teardown() {
   printf "consecutive_failures=0\ntotal_iterations=2\n" > "${state_file}"
 
   # Set up observation-log with content so post_observation is skipped
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
-  echo '{"observer":"dummy"}' > "${parent_dir}/.claude/harness/observation-log.jsonl"
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
+  echo '{"observer":"dummy"}' > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
 
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
   [ "$status" -eq 0 ]
@@ -263,10 +252,8 @@ teardown() {
   printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
 
   # Set up observation-log with content so post_observation is skipped
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
-  echo '{"observer":"dummy"}' > "${parent_dir}/.claude/harness/observation-log.jsonl"
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
+  echo '{"observer":"dummy"}' > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
 
   # Use an invalid claude binary that fails for meta-observation
   # But main invoker uses FAKE_CLAUDE_EXIT_CODE=0, so we need a different approach.
@@ -298,11 +285,9 @@ teardown() {
   printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
 
   # Set up observation-log with a critical entry
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
   echo '{"timestamp":"2025-01-01T00:00:00Z","observer":"harness-user-reviewer","severity":"critical","finding":"test","recommendation":"fix it"}' \
-    > "${parent_dir}/.claude/harness/observation-log.jsonl"
+    > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
 
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
   [ "$status" -eq 0 ]
@@ -326,11 +311,9 @@ teardown() {
   printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
 
   # Set up observation-log with only an info entry (no critical/warning)
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
   echo '{"timestamp":"2025-01-01T00:00:00Z","observer":"meta-observer","severity":"info","finding":"all good"}' \
-    > "${parent_dir}/.claude/harness/observation-log.jsonl"
+    > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
 
   run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
   [ "$status" -eq 0 ]
@@ -339,6 +322,41 @@ teardown() {
   local call_count
   call_count="$(wc -l < "${log_file}" | tr -d ' ')"
   [ "${call_count}" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# TC-15: _resolve_harness_path が symlink 経由で正しいパスを返す
+# ---------------------------------------------------------------------------
+@test "TC-15: _resolve_harness_path resolves symlinked .claude to real path" {
+  # Create a real .claude/harness directory at a different location
+  local real_claude_dir="${BATS_TEST_TMPDIR}/real-dot-claude"
+  mkdir -p "${real_claude_dir}/harness"
+
+  # Create a workspace dir where .claude is a symlink to the real dir
+  local ws="${BATS_TEST_TMPDIR}/symlink-ws"
+  mkdir -p "${ws}"
+  ln -s "${real_claude_dir}" "${ws}/.claude"
+
+  # Call _resolve_harness_path inline (same logic as meta-loop.sh, using pwd -P) without sourcing
+  # main to avoid triggering argument parsing
+  local resolved
+  resolved="$(bash -c '
+    _resolve_harness_path() {
+      local target="$1"
+      local subpath="$2"
+      local harness_dir
+      harness_dir="$(cd "${target}/.claude/harness" 2>/dev/null && pwd -P)"
+      echo "${harness_dir}/${subpath}"
+    }
+    _resolve_harness_path "$1" "$2"
+  ' -- "${ws}" "observation-log.jsonl")"
+
+  # Use pwd -P on the real dir to get the canonical path (handles macOS /tmp -> /private/tmp)
+  local real_harness_dir
+  real_harness_dir="$(cd "${real_claude_dir}/harness" && pwd -P)"
+  local expected="${real_harness_dir}/observation-log.jsonl"
+
+  [ "${resolved}" = "${expected}" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -351,12 +369,10 @@ teardown() {
   local state_file="${MLTEST_WORKSPACE}/.meta-loop-state"
   printf "consecutive_failures=0\ntotal_iterations=4\n" > "${state_file}"
 
-  # Set up observation-log with 3 entries
-  local parent_dir
-  parent_dir="$(dirname "${MLTEST_WORKSPACE}")"
-  mkdir -p "${parent_dir}/.claude/harness"
-  local obs_log="${parent_dir}/.claude/harness/observation-log.jsonl"
-  local archive_log="${parent_dir}/.claude/harness/observation-log-archive.jsonl"
+  # Set up observation-log with 3 entries at target/.claude/harness/
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
+  local obs_log="${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
+  local archive_log="${MLTEST_WORKSPACE}/.claude/harness/observation-log-archive.jsonl"
   printf '{"severity":"critical","finding":"a"}\n{"severity":"warning","finding":"b"}\n{"severity":"info","finding":"c"}\n' \
     > "${obs_log}"
 
