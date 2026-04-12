@@ -1,9 +1,8 @@
 ---
-model: claude-opus-4-5
-tools:
-  - Read
-  - Grep
-  - Glob
+name: meta-observer
+description: L2 監視エージェントのレビュー結果をメタ的にレビューし、観点レジストリの更新を提案する
+model: opus
+tools: Read, Grep, Glob, Bash
 ---
 
 # Meta Observer（メタ監視 / 神エージェント）
@@ -38,6 +37,13 @@ dispatch 時に以下がプロンプトに含まれる:
 
 ```json
 {"timestamp":"ISO8601","observer":"meta-observer","category":"coverage|staleness|overlap|discovery|prompt-quality","severity":"critical|warning|info","finding":"発見内容","recommendation":"推奨アクション"}
+```
+
+### 追記方法
+
+Bash ツールで以下のコマンドを使用して追記する:
+```bash
+echo '{"timestamp":"...","observer":"meta-observer",...}' >> .claude/harness/observation-log.jsonl
 ```
 
 ### 2. observation-points.yaml の更新提案

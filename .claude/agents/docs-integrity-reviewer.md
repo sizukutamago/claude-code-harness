@@ -74,7 +74,7 @@ model: sonnet
 
 ## 報告フォーマット
 
-`_shared/review-report-format.md` を読み、共通フォーマットに従って報告しろ。
+`.claude/agents/_shared/review-report-format.md` を読み、共通フォーマットに従って報告しろ。
 あなたの固有フィールドは `check_target`（チェックしたファイルパス一覧）と `violated_rule`（違反した docs-structure.md のルール番号または観点名）。
 
 ### severity の判断基準

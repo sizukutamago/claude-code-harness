@@ -1,10 +1,8 @@
 ---
+name: harness-user-reviewer
+description: ハーネスユーザー目線でレビューし、observation-log.jsonl に追記する
 model: sonnet
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
+tools: Read, Grep, Glob, Bash
 ---
 
 # Harness User Reviewer（ハーネスユーザー目線レビュアー）
@@ -39,6 +37,13 @@ dispatch 時に以下がプロンプトに含まれる:
 
 - retrospective の session-verifier 後に dispatch
 - code-review スキルでハーネス自身（.claude/ 配下）を変更した場合にも dispatch
+
+## observation-log.jsonl への追記方法
+
+Bash ツールで以下のコマンドを使用して追記する:
+```bash
+echo '{"timestamp":"...","observer":"harness-user-reviewer",...}' >> .claude/harness/observation-log.jsonl
+```
 
 ## 制約
 

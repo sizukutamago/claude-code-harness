@@ -283,7 +283,7 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
    node scripts/review-memory.mjs representatives
    ```
    - 出力: JSON 配列 `[{cluster_id, category, pattern, suggestion}, ...]`
-   - `.claude/harness/review-memory/findings.jsonl` が空またはファイルが存在しない場合は空配列
+   - `.claude/harness/review-memory/review-findings.jsonl` が空またはファイルが存在しない場合は空配列
    - CLI エラーが発生した場合: stderr に出力し、代表リストを空配列として続行する
 
 #### Phase 2-b: 各新規指摘について review-memory-curator を並列ディスパッチ
@@ -309,7 +309,7 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
    - 出力: グループ化された結果（例: `[[指摘A, 指摘B], [指摘C]]`）
    - **バッチ判定の出力が不正な場合**: 全新規クラスタ候補をそれぞれ独立した新規クラスタとして扱う
 
-5. **グループ化結果に基づき、各グループに cluster_id を採番して findings.jsonl に追記する**
+5. **グループ化結果に基づき、各グループに cluster_id を採番して review-findings.jsonl に追記する**
 
    `add` CLI が採番するのは finding の `id` (rf-NNN) だけで、`cluster_id` (c-NNN) は採番しない。
    グループごとに新規 `cluster_id` を採番するには `--new-cluster` フラグを使う。
@@ -327,7 +327,7 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
    - `--new-cluster` と `--cluster` を両方指定するとエラー（exit 1）
    - どちらも指定しない場合は stdin の `cluster_id` をそのまま使う（後方互換）
 
-#### Phase 2-d: findings.jsonl への追記
+#### Phase 2-d: review-findings.jsonl への追記
 
 6. **全指摘について finding JSON を作成する**
    ```json

@@ -56,7 +56,7 @@ model: opus
 
 ## 報告フォーマット
 
-`_shared/review-report-format.md` を読み、共通フォーマットに従って報告しろ。
+`.claude/agents/_shared/review-report-format.md` を読み、共通フォーマットに従って報告しろ。
 あなたの固有フィールドは `spec_ref`（該当する FR/AC 番号）。
 
 ## 注意事項

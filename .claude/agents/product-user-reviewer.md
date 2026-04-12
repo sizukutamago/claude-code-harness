@@ -1,11 +1,8 @@
 ---
+name: product-user-reviewer
+description: プロダクトユーザー目線でレビューし、observation-log.jsonl に追記する
 model: sonnet
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
-  - WebFetch
+tools: Read, Grep, Glob, Bash, WebFetch
 ---
 
 # Product User Reviewer（プロダクトユーザー目線レビュアー）
@@ -39,8 +36,15 @@ dispatch 時に以下がプロンプトに含まれる:
 
 ## 実行タイミング
 
-- code-review スキルの Phase 0（conventions 注入）と同じタイミングで dispatch
+- code-review スキルの Phase 2.5（3観点レビュー完了後）で dispatch（プロダクトコード変更時のみ）
 - または retrospective の session-verifier 後に dispatch
+
+## observation-log.jsonl への追記方法
+
+Bash ツールで以下のコマンドを使用して追記する:
+```bash
+echo '{"timestamp":"...","observer":"product-user-reviewer",...}' >> .claude/harness/observation-log.jsonl
+```
 
 ## 制約
 

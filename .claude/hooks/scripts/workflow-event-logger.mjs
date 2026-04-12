@@ -43,6 +43,11 @@ const WORKFLOW_STEP_MAP = {
   "session-verifier": "[12] 振り返り",
   "improvement-proposer": "[12] 振り返り",
   "review-memory-curator": "(補助)",
+  "roadmap-planner": "[3] 計画",
+  "product-user-reviewer": "(観察)",
+  "harness-user-reviewer": "(観察)",
+  "meta-observer": "[12] 振り返り",
+  "docs-integrity-reviewer": "[8] レビュー",
 };
 
 /**

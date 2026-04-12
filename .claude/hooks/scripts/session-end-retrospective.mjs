@@ -10,10 +10,19 @@
  * stderr → ユーザへのメッセージとして表示される。
  */
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 try {
-  const logFile = ".claude/harness/session-tool-log.jsonl";
+  let cwd = process.cwd();
+  try {
+    const input = JSON.parse(readFileSync(0, "utf-8"));
+    cwd = input.cwd || cwd;
+  } catch {
+    // stdin が提供されない場合は process.cwd() を使用
+  }
+
+  const logFile = resolve(cwd, ".claude/harness/session-tool-log.jsonl");
 
   if (!existsSync(logFile) || statSync(logFile).size === 0) {
     process.exit(0);

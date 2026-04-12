@@ -62,7 +62,7 @@ model: opus
 
 ## 報告フォーマット
 
-`_shared/review-report-format.md` を読み、共通フォーマットに従って報告しろ。
+`.claude/agents/_shared/review-report-format.md` を読み、共通フォーマットに従って報告しろ。
 あなたの固有フィールドは `plan_ref`（該当する Task 番号・FR 番号）。
 
 ### severity の判断基準
