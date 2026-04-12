@@ -71,6 +71,27 @@ _state_write_key() {
 }
 
 # ---------------------------------------------------------------------------
+# state_increment <state-file> <key>
+#
+# 指定キーの値を読み取り、+1 して書き戻す（汎用版）。
+# ファイル不在なら新規作成してキー=1 にする。
+# キー不在なら 0 + 1 = 1 として書き込む。
+# 他のキーは保全する。
+# ---------------------------------------------------------------------------
+state_increment() {
+  local state_file="$1"
+  local key="$2"
+
+  local current
+  current="$(state_read "${state_file}" "${key}")"
+
+  local new_value
+  new_value=$(( current + 1 ))
+
+  _state_write_key "${state_file}" "${key}" "${new_value}"
+}
+
+# ---------------------------------------------------------------------------
 # state_increment_failure <state-file>
 #
 # consecutive_failures を読み取り、+1 して書き戻す。
@@ -79,14 +100,7 @@ _state_write_key() {
 # ---------------------------------------------------------------------------
 state_increment_failure() {
   local state_file="$1"
-
-  local current
-  current="$(state_read "${state_file}" "consecutive_failures")"
-
-  local new_value
-  new_value=$(( current + 1 ))
-
-  _state_write_key "${state_file}" "consecutive_failures" "${new_value}"
+  state_increment "${state_file}" "consecutive_failures"
 }
 
 # ---------------------------------------------------------------------------

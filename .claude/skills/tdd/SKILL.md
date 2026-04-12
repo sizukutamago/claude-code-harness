@@ -210,6 +210,8 @@ PASS: 全テストグリーン
 
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` を特定しろ。タスクのコンテキスト（plan、直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
+**メタループ駆動の場合の例外:** `requirements/` が存在しない環境（workspace/ec-sample 等）では、`progress.txt` のストーリー定義を requirements の代替として使用する。implementer への dispatch 時に「progress.txt の Story-N の定義」を requirements.md の代わりにプロンプトに含める。
+
 1. **`implementer` エージェントをディスパッチする**
    - REQ パス + 対応する REQ の requirements.md 全文 + タスクの内容とコンテキスト（対象ファイル、関連コード）を全文渡す
    - `implementer` が TDD サイクル（RED→GREEN→REFACTOR）を実行する

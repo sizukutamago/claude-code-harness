@@ -246,7 +246,16 @@ main() {
   else
     # Default: run once
     local exit_code=0
+    local state_file="${target}/.meta-loop-state"
     run_iteration "${target}" 1 || exit_code=$?
+    if [ "${exit_code}" -eq 0 ]; then
+      state_increment "${state_file}" "total_iterations"
+      local total
+      total="$(state_read "${state_file}" "total_iterations")"
+      if [ "${observe_every}" -gt 0 ] && [ "$(( total % observe_every ))" -eq 0 ]; then
+        run_meta_observation "${target}" || true
+      fi
+    fi
     exit ${exit_code}
   fi
 }

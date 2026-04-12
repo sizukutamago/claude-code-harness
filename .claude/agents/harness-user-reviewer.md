@@ -4,6 +4,7 @@ tools:
   - Read
   - Grep
   - Glob
+  - Bash
 ---
 
 # Harness User Reviewer（ハーネスユーザー目線レビュアー）
@@ -44,3 +45,10 @@ dispatch 時に以下がプロンプトに含まれる:
 - Read only: コードを修正しない。発見と提案のみ
 - 1 セッション 1 回: 同じセッションで複数回 dispatch しない
 - observation-log.jsonl に追記するのみ: 他のファイルを変更しない
+
+## Bash 制約
+
+Bash ツールは以下のコマンドのみ使用可能:
+- スクリプト動作確認: node scripts/*.mjs（読み取り系オプションのみ）
+- テスト実行: npm test
+- 読み取り専用コマンド: cat, ls, find, grep

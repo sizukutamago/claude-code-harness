@@ -156,3 +156,53 @@ setup() {
   tmp_count=$(find "${dir}" -name "*.tmp.*" -o -name ".tmp.*" 2>/dev/null | wc -l | tr -d ' ')
   [ "${tmp_count}" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# TC-6: state_increment — 汎用キー increment
+# ---------------------------------------------------------------------------
+
+@test "state_increment: increments arbitrary key from 0 to 1 when file absent" {
+  [ ! -f "${STATE_FILE}" ]
+  state_increment "${STATE_FILE}" "total_iterations"
+  run state_read "${STATE_FILE}" "total_iterations"
+  [ "$output" = "1" ]
+}
+
+@test "state_increment: increments arbitrary key from 3 to 4" {
+  echo "total_iterations=3" > "${STATE_FILE}"
+  state_increment "${STATE_FILE}" "total_iterations"
+  run state_read "${STATE_FILE}" "total_iterations"
+  [ "$output" = "4" ]
+}
+
+@test "state_increment: does not affect other keys" {
+  printf "consecutive_failures=2\ntotal_iterations=3\n" > "${STATE_FILE}"
+  state_increment "${STATE_FILE}" "total_iterations"
+  run state_read "${STATE_FILE}" "consecutive_failures"
+  [ "$output" = "2" ]
+}
+
+@test "state_increment: increments consecutive_failures key (same as state_increment_failure)" {
+  echo "consecutive_failures=1" > "${STATE_FILE}"
+  state_increment "${STATE_FILE}" "consecutive_failures"
+  run state_read "${STATE_FILE}" "consecutive_failures"
+  [ "$output" = "2" ]
+}
+
+# ---------------------------------------------------------------------------
+# TC-7: state_increment_failure と state_reset_failure がリファクタ後も動作する
+# ---------------------------------------------------------------------------
+
+@test "state_increment_failure: still works after refactor to use state_increment" {
+  echo "consecutive_failures=0" > "${STATE_FILE}"
+  state_increment_failure "${STATE_FILE}"
+  run state_read "${STATE_FILE}" "consecutive_failures"
+  [ "$output" = "1" ]
+}
+
+@test "state_reset_failure: still works after refactor" {
+  echo "consecutive_failures=3" > "${STATE_FILE}"
+  state_reset_failure "${STATE_FILE}"
+  run state_read "${STATE_FILE}" "consecutive_failures"
+  [ "$output" = "0" ]
+}
