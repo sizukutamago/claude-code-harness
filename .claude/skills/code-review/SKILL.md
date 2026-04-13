@@ -241,6 +241,8 @@ SHOULD: レスポンスに内部エラーの詳細が露出（スタックトレ
 
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` を特定しろ。タスクのコンテキスト（plan、直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
+**メタループ駆動の場合の例外:** `requirements/` が存在しない環境（workspace/ec-sample 等）では、`progress.txt` のストーリー定義を requirements の代替として使用する。
+
 ### Phase 0: review-conventions.md の読み込み（新規）
 
 1. **review-conventions.md を読む**
@@ -328,6 +330,8 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
    - どちらも指定しない場合は stdin の `cluster_id` をそのまま使う（後方互換）
 
 #### Phase 2-d: review-findings.jsonl への追記
+
+**注意:** 以下の CLI コマンドはコーディネーター（メインセッション）が Bash ツールで実行する。review-memory-curator はクラスタ判定のみを担う。
 
 6. **全指摘について finding JSON を作成する**
    ```json

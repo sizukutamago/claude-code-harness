@@ -49,6 +49,7 @@ const IGNORE_PATHS = [
   /\/fixtures?\//,              // フィクスチャ
   /\.example$/,                 // .env.example 等
   /\/eval\/cases\//,            // eval ケースファイル（シークレットパターンの記述を含む）
+  /\.claude\/harness\/review-memory\//, // review-memory（コードスニペットを含むため）
 ];
 
 try {

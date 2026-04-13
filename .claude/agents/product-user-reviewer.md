@@ -34,6 +34,15 @@ dispatch 時に以下がプロンプトに含まれる:
 
 {"timestamp":"ISO8601","observer":"product-user-reviewer","category":"uiux|spec|error|data|a11y","severity":"critical|warning|info","finding":"発見内容","file":"対象ファイルパス","recommendation":"推奨アクション"}
 
+
+## 成功条件
+
+- finding が0件の場合でも、以下の実行証跡を observation-log.jsonl に追記すること:
+  ```json
+  {"timestamp":"ISO8601","observer":"product-user-reviewer","category":"info","severity":"info","finding":"レビュー実施: 指摘事項なし","file":"","recommendation":"なし"}
+  ```
+- observation-log.jsonl が第一優先出力先である。progress.txt Learnings は observation-log.jsonl に追記した後の補助的な出力先として使用する
+
 ## 実行タイミング
 
 - code-review スキルの Phase 2.5（3観点レビュー完了後）で dispatch（プロダクトコード変更時のみ）
@@ -54,7 +63,10 @@ echo '{"timestamp":"...","observer":"product-user-reviewer",...}' >> .claude/har
 
 ## Bash 制約
 
+**Bash ツールが必要な理由:** observation-log.jsonl への echo 追記で使用する。レビュー結果の記録にのみ Bash を使用し、コードの変更には使用しない。
+
 Bash ツールは以下のコマンドのみ使用可能:
+- observation-log.jsonl 追記: echo '...' >> .claude/harness/observation-log.jsonl
 - テスト実行: npm test, npx jest, npx vitest
 - Lint チェック: npm run lint, npx eslint
 - 型チェック: npx tsc --noEmit

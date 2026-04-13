@@ -189,6 +189,8 @@ function handleCreateUser(req, res) {
 
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` を特定しろ。タスクのコンテキスト（plan、直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
+**メタループ駆動の場合の例外:** `requirements/` が存在しない環境（workspace/ec-sample 等）では、`progress.txt` のストーリー定義を requirements の代替として使用する。
+
 1. **`test-runner` エージェントをディスパッチしてベースライン取得**
    - 現在のテストが全 GREEN であることを確認する
    - GREEN でなければ simplify に進まない。TDD に戻る

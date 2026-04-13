@@ -36,7 +36,7 @@ dispatch 時に以下がプロンプトに含まれる:
 ### 1. observation-log.jsonl への追記
 
 ```json
-{"timestamp":"ISO8601","observer":"meta-observer","category":"coverage|staleness|overlap|discovery|prompt-quality","severity":"critical|warning|info","finding":"発見内容","recommendation":"推奨アクション"}
+{"timestamp":"ISO8601","observer":"meta-observer","category":"coverage|staleness|overlap|discovery|prompt-quality","severity":"critical|warning|info","finding":"発見内容","file":"対象ファイルパス（なければ空文字列）","recommendation":"推奨アクション"}
 ```
 
 ### 追記方法
@@ -45,6 +45,15 @@ Bash ツールで以下のコマンドを使用して追記する:
 ```bash
 echo '{"timestamp":"...","observer":"meta-observer",...}' >> .claude/harness/observation-log.jsonl
 ```
+
+
+### 成功条件
+
+- finding が0件の場合でも、以下の実行証跡を observation-log.jsonl に追記すること:
+  ```json
+  {"timestamp":"ISO8601","observer":"meta-observer","category":"info","severity":"info","finding":"メタ監視実施: 指摘事項なし","file":"","recommendation":"なし"}
+  ```
+- observation-log.jsonl が第一優先出力先である
 
 ### 2. observation-points.yaml の更新提案
 

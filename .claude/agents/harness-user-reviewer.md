@@ -45,6 +45,15 @@ Bash ツールで以下のコマンドを使用して追記する:
 echo '{"timestamp":"...","observer":"harness-user-reviewer",...}' >> .claude/harness/observation-log.jsonl
 ```
 
+
+## 成功条件
+
+- finding が0件の場合でも、以下の実行証跡を observation-log.jsonl に追記すること:
+  ```json
+  {"timestamp":"ISO8601","observer":"harness-user-reviewer","category":"info","severity":"info","finding":"レビュー実施: 指摘事項なし","file":"","recommendation":"なし"}
+  ```
+- observation-log.jsonl が第一優先出力先である。progress.txt Learnings は observation-log.jsonl に追記した後の補助的な出力先として使用する
+
 ## 制約
 
 - Read only: コードを修正しない。発見と提案のみ
@@ -53,7 +62,10 @@ echo '{"timestamp":"...","observer":"harness-user-reviewer",...}' >> .claude/har
 
 ## Bash 制約
 
+**Bash ツールが必要な理由:** observation-log.jsonl への echo 追記で使用する。レビュー結果の記録にのみ Bash を使用し、コードの変更には使用しない。
+
 Bash ツールは以下のコマンドのみ使用可能:
+- observation-log.jsonl 追記: echo '...' >> .claude/harness/observation-log.jsonl
 - スクリプト動作確認: node scripts/*.mjs（読み取り系オプションのみ）
 - テスト実行: npm test
 - 読み取り専用コマンド: cat, ls, find, grep

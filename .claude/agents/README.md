@@ -35,6 +35,15 @@
 | session-verifier | Sonnet | Read, Grep, Glob, Bash, Write | retrospective |
 | improvement-proposer | Opus | Read, Grep, Glob | retrospective |
 
+### 観察・監視系エージェント（常時展開）
+
+| エージェント | model | tools | 対応スキル |
+|------------|-------|-------|-----------|
+| product-user-reviewer | Sonnet | Read, Grep, Glob, Bash, WebFetch | code-review (Phase 2.5) |
+| harness-user-reviewer | Sonnet | Read, Grep, Glob, Bash | code-review (Phase 2.5) |
+| meta-observer | Opus | Read, Grep, Glob, Bash | retrospective |
+| review-memory-curator | Sonnet | Read, Grep, Glob | code-review (Phase 2) |
+
 ### モジュールエージェント（条件付き展開）
 
 | エージェント | モジュール | model | tools |

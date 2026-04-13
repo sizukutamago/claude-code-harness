@@ -22,9 +22,13 @@ try {
     // stdin が提供されない場合は process.cwd() を使用
   }
 
-  const logFile = resolve(cwd, ".claude/harness/session-tool-log.jsonl");
+  const toolLogFile = resolve(cwd, ".claude/harness/session-tool-log.jsonl");
+  const workflowEventsFile = resolve(cwd, ".claude/harness/workflow-events.jsonl");
 
-  if (!existsSync(logFile) || statSync(logFile).size === 0) {
+  const hasToolLog = existsSync(toolLogFile) && statSync(toolLogFile).size > 0;
+  const hasWorkflowEvents = existsSync(workflowEventsFile) && statSync(workflowEventsFile).size > 0;
+
+  if (!hasToolLog && !hasWorkflowEvents) {
     process.exit(0);
   }
 

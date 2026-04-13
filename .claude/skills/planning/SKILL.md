@@ -259,6 +259,8 @@ Task-1 → Task-2 → Task-3
 
 **前提: 対応する REQ を特定する。** ディスパッチ前に、このタスクに対応する `requirements/REQ-*/requirements.md` と `design.md` を特定しろ。タスクのコンテキスト（直前のステップの出力）に REQ パスが含まれていればそれを使う。見つからなければ `requirements/` を確認し、候補を人間パートナーに AskUserQuestion で提示して選択してもらう。**推測で REQ を決めるな。必ず人間に確認しろ。**
 
+**メタループ駆動の場合の例外:** `requirements/` が存在しない環境（workspace/ec-sample 等）では、`progress.txt` のストーリー定義を requirements の代替として使用する。
+
 1. **`planner` エージェントをディスパッチしてタスク分解する**
    - プロンプトに REQ パス + 対応する REQ の requirements.md 全文 + design.md 全文を含める
    - **コンテキストはプロンプトに全文埋め込む。** エージェントにファイルを読ませるな
