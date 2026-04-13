@@ -47,7 +47,8 @@ try {
   const warnings = [];
 
   // git staging area のファイルをチェック（staged files のみ）
-  // ここでは簡易的にワーキングディレクトリの直下をスキャン
+  // ここでは簡易的にワーキングディレクトリの直下のみをスキャン
+  // 注意: src/ 以下のサブディレクトリは検出対象外。深い階層の一時ファイルは cleanup スキルで対処する
   try {
     const entries = readdirSync(cwd);
     for (const entry of entries) {

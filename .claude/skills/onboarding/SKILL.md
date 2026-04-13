@@ -146,6 +146,8 @@ Figma 操作は figma-operator エージェントが担当します。
 
 - フック — イベント駆動の自動化
   - 例: メインセッションがコードを書こうとしたらブロック（エージェントに任せる設計）
+  - 例: コミット前に検証証拠（last-verification.json）が必要（verification-gate）
+  - 例: セッション終了時に振り返りリマインダーを表示（session-end-retrospective）
 
 普段は意識する必要はありません。興味があれば .claude/ の中を見てください。
 ```

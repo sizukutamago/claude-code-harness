@@ -64,6 +64,8 @@ echo '{"timestamp":"...","observer":"harness-user-reviewer",...}' >> .claude/har
 
 **Bash ツールが必要な理由:** observation-log.jsonl への echo 追記で使用する。レビュー結果の記録にのみ Bash を使用し、コードの変更には使用しない。
 
+**前提:** cwd はプロジェクトルート（CLAUDE.md が存在するディレクトリ）であること。dispatch 時に cwd が不定の場合は、先に `pwd` で確認してからパスを組み立てる。
+
 Bash ツールは以下のコマンドのみ使用可能:
 - observation-log.jsonl 追記: echo '...' >> .claude/harness/observation-log.jsonl
 - スクリプト動作確認: node scripts/*.mjs（読み取り系オプションのみ）

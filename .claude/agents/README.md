@@ -35,14 +35,16 @@
 | session-verifier | Sonnet | Read, Grep, Glob, Bash, Write | retrospective |
 | improvement-proposer | Opus | Read, Grep, Glob | retrospective |
 
+> **Note:** session-verifier は検証系エージェントだが Write 権限を持つ。これは人手修正（manual-edit）を検知した際に `session-feedback.jsonl` に記録するためである。
+
 ### 観察・監視系エージェント（常時展開）
 
-| エージェント | model | tools | 対応スキル |
-|------------|-------|-------|-----------|
-| product-user-reviewer | Sonnet | Read, Grep, Glob, Bash, WebFetch | code-review (Phase 2.5) |
-| harness-user-reviewer | Sonnet | Read, Grep, Glob, Bash | code-review (Phase 2.5) |
-| meta-observer | Opus | Read, Grep, Glob, Bash | retrospective |
-| review-memory-curator | Sonnet | Read, Grep, Glob | code-review (Phase 2) |
+| エージェント | model | tools | 対応スキル | dispatch 条件 |
+|------------|-------|-------|-----------|--------------|
+| product-user-reviewer | Sonnet | Read, Grep, Glob, Bash, WebFetch | code-review (Phase 2.5) | プロダクトコード変更時 |
+| harness-user-reviewer | Sonnet | Read, Grep, Glob, Bash | code-review (Phase 2.5) | .claude/ 配下変更時 |
+| meta-observer | Opus | Read, Grep, Glob, Bash | retrospective | 直近3セッション以内に未実行の場合 |
+| review-memory-curator | Sonnet | Read, Grep, Glob | code-review (Phase 2) | レビュー指摘あり時 |
 
 ### モジュールエージェント（条件付き展開）
 
