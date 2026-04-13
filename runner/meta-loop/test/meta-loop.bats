@@ -391,3 +391,38 @@ teardown() {
   archive_count="$(wc -l < "${archive_log}" | tr -d ' ')"
   [ "${archive_count}" -ge 3 ]
 }
+
+# ---------------------------------------------------------------------------
+# TC-16: run_eval_collection が node scripts/eval-harness.mjs を呼ぶ（node をモック）
+# ---------------------------------------------------------------------------
+@test "TC-16: run_eval_collection calls node scripts/eval-harness.mjs on successful iteration" {
+  export FAKE_CLAUDE_EXIT_CODE=0
+
+  # node stub: log invocations to a file
+  local node_log="${BATS_TEST_TMPDIR}/node-calls.log"
+  local stubs_dir="${BATS_TEST_TMPDIR}/stubs"
+  mkdir -p "${stubs_dir}"
+  cat > "${stubs_dir}/node" <<'NODE_STUB'
+#!/usr/bin/env bash
+# Fake node: log the arguments, then succeed
+log_file="${NODE_LOG_FILE:-}"
+if [ -n "${log_file}" ]; then
+  printf '%s\n' "$*" >> "${log_file}"
+fi
+exit 0
+NODE_STUB
+  chmod +x "${stubs_dir}/node"
+  export PATH="${stubs_dir}:${PATH}"
+  export NODE_LOG_FILE="${node_log}"
+
+  # Set up observation-log with content so post_observation is skipped
+  mkdir -p "${MLTEST_WORKSPACE}/.claude/harness"
+  echo '{"observer":"dummy"}' > "${MLTEST_WORKSPACE}/.claude/harness/observation-log.jsonl"
+
+  run "${META_LOOP_SH}" --target "${MLTEST_WORKSPACE}"
+  [ "$status" -eq 0 ]
+
+  # node should have been called with eval-harness.mjs path in the arguments
+  [ -f "${node_log}" ]
+  grep -q "eval-harness.mjs" "${node_log}"
+}

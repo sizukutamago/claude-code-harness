@@ -271,6 +271,25 @@ META_PROMPT
 }
 
 # ---------------------------------------------------------------------------
+# run_eval_collection <target>
+#
+# Collect quantitative metrics for the workspace by invoking eval-harness.mjs.
+# The harness name is taken from META_LOOP_HARNESS_NAME (default: claude-code-harness).
+# Output is written to target/.claude/harness/eval-results-<harness-name>.jsonl.
+# Best-effort: failures do not affect the main loop (caller uses || true).
+# ---------------------------------------------------------------------------
+run_eval_collection() {
+  local target="$1"
+  local harness_name="${META_LOOP_HARNESS_NAME:-claude-code-harness}"
+  local eval_output
+  eval_output="$(_resolve_harness_path "${target}" "eval-results-${harness_name}.jsonl")"
+
+  if command -v node >/dev/null 2>&1; then
+    node "${SCRIPT_DIR}/../../scripts/eval-harness.mjs" "${target}" "${eval_output}" "${harness_name}" || true
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # run_iteration <target> <iter_num>
 #
 # Run one iteration:
@@ -293,6 +312,7 @@ run_iteration() {
   if invoker_run "${target}"; then
     state_reset_failure "${state_file}"
     run_post_observation "${target}" || true
+    run_eval_collection "${target}" || true
     iter_result=0
   else
     iter_exit=$?

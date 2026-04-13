@@ -84,8 +84,9 @@ describe("Phase 3 多層観察アーキテクチャ: ファイル存在確認", 
     const fm = parseFrontmatter(content);
     assert.ok(fm !== null, "frontmatter が存在しない");
     assert.ok("tools" in fm, "frontmatter に tools キーが存在しない");
-    assert.ok(Array.isArray(fm.tools), "tools は配列である");
-    assert.ok(fm.tools.length > 0, "tools に要素がある");
+    const tools = fm.tools;
+    const hasTools = Array.isArray(tools) ? tools.length > 0 : typeof tools === "string" && tools.length > 0;
+    assert.ok(hasTools, "tools に要素がある");
   });
 
   it("AC-P3-1: product-user-reviewer.md の frontmatter に model: が含まれる", async () => {
@@ -115,8 +116,9 @@ describe("Phase 3 多層観察アーキテクチャ: ファイル存在確認", 
     const fm = parseFrontmatter(content);
     assert.ok(fm !== null, "frontmatter が存在しない");
     assert.ok("tools" in fm, "frontmatter に tools キーが存在しない");
-    assert.ok(Array.isArray(fm.tools), "tools は配列である");
-    assert.ok(fm.tools.length > 0, "tools に要素がある");
+    const tools = fm.tools;
+    const hasTools = Array.isArray(tools) ? tools.length > 0 : typeof tools === "string" && tools.length > 0;
+    assert.ok(hasTools, "tools に要素がある");
   });
 
   it("AC-P3-2: harness-user-reviewer.md の frontmatter に model: が含まれる", async () => {

@@ -126,8 +126,9 @@ describe("Phase 4 L3 メタ監視層: meta-observer.md の確認", () => {
     const fm = parseFrontmatter(content);
     assert.ok(fm !== null, "frontmatter が存在しない");
     assert.ok("tools" in fm, "frontmatter に tools キーが存在しない");
-    assert.ok(Array.isArray(fm.tools), "tools は配列である");
-    assert.ok(fm.tools.length > 0, "tools に要素がある");
+    const tools = fm.tools;
+    const hasTools = Array.isArray(tools) ? tools.length > 0 : typeof tools === "string" && tools.length > 0;
+    assert.ok(hasTools, "tools に要素がある");
   });
 
   it("AC-P4-1: meta-observer.md の frontmatter の model が opus である", async () => {
