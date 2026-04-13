@@ -46,15 +46,30 @@ try {
   const cwd = input?.cwd || process.cwd();
   const warnings = [];
 
-  // git staging area のファイルをチェック（staged files のみ）
-  // ここでは簡易的にワーキングディレクトリの直下のみをスキャン
-  // 注意: src/ 以下のサブディレクトリは検出対象外。深い階層の一時ファイルは cleanup スキルで対処する
+  // staged files をチェック（git diff --cached を使用）
+  try {
+    const { execSync } = await import("node:child_process");
+    const stagedOutput = execSync("git diff --cached --name-only", { cwd, encoding: "utf-8" });
+    const stagedFiles = stagedOutput.trim().split("\n").filter(Boolean);
+
+    for (const filePath of stagedFiles) {
+      const fileName = filePath.split("/").pop() || "";
+
+      // 一時ファイルパターンの検出
+      for (const pattern of STALE_PATTERNS) {
+        if (pattern.test(fileName)) {
+          warnings.push(`一時ファイル（staged）: ${filePath}`);
+          break;
+        }
+      }
+    }
+  } catch { /* git コマンド失敗は無視 */ }
+
+  // ワーキングディレクトリ直下の一時ディレクトリも検出
   try {
     const entries = readdirSync(cwd);
     for (const entry of entries) {
       if (entry.startsWith(".")) continue;
-
-      // 一時ディレクトリの検出
       if (STALE_DIRS.includes(entry.toLowerCase())) {
         try {
           const s = statSync(join(cwd, entry));
@@ -62,15 +77,6 @@ try {
             warnings.push(`一時ディレクトリ: ${entry}/`);
           }
         } catch { /* ignore */ }
-        continue;
-      }
-
-      // 一時ファイルパターンの検出
-      for (const pattern of STALE_PATTERNS) {
-        if (pattern.test(entry)) {
-          warnings.push(`一時ファイル: ${entry}`);
-          break;
-        }
       }
     }
   } catch { /* cwd 読み取り失敗は無視 */ }

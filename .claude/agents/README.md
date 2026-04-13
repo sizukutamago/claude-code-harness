@@ -66,3 +66,13 @@ model: sonnet | opus | haiku
 
 フロントマターで `tools` を指定すると、Claude Code がツール利用をホワイトリスト制限する。
 レビュアー系は `Read, Grep, Glob` のみ（read-only）。実装系は `Write, Edit, Bash` も含む。
+
+## 組み込みエージェント
+
+以下は Claude Code の組み込みエージェントであり、`.claude/agents/` には定義ファイルを置かない:
+
+| エージェント | 用途 | dispatch 方法 |
+|------------|------|--------------|
+| Explore | コードベースの探索・調査 | `subagent_type: "Explore"` |
+
+requirements スキルや design スキルの調査フェーズで使用する。

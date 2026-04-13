@@ -62,19 +62,24 @@ try {
     process.exit(2);
   }
 
-  // 検証結果を確認
+  // 検証結果を確認（fail-closed: PASS 以外はすべてブロック）
   try {
     const evidence = JSON.parse(readFileSync(evidencePath, "utf-8"));
-    if (evidence.status === "FAIL") {
+    const normalizedStatus = (evidence.status || "").toUpperCase();
+    if (normalizedStatus !== "PASS") {
       console.error(
-        `[harness] 検証が FAIL のままです。\n` +
+        `[harness] 検証が PASS ではありません（status: ${evidence.status || "(未設定)"}）。\n` +
         `理由: ${evidence.reason || "(不明)"}\n` +
         `問題を修正し、/verification を再実行してからコミットしてください。`,
       );
       process.exit(2);
     }
-  } catch {
-    // JSON パースに失敗しても、ファイルが存在し新しければ許可
+  } catch (parseErr) {
+    console.error(
+      `[harness] 検証証拠の読み取りに失敗しました。\n` +
+      `verification スキル（/verification）を再実行してからコミットしてください。`,
+    );
+    process.exit(2);
   }
 
   process.exit(0);

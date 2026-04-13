@@ -413,7 +413,7 @@ Explore エージェントは「調べてきて」と頼む調査員。「ユー
 
 ### Phase 1: 調査
 
-Explore エージェント（subagent_type=Explore）に既存コードベース・ドキュメントの調査を委譲する。
+Claude Code 組み込みの Explore サブエージェント（subagent_type: "Explore"）に既存コードベース・ドキュメントの調査を委譲する。Explore は `.claude/agents/` に定義ファイルを持たない Claude Code 標準のサブエージェントである。
 
 - プロンプトにタスクの概要 + 調査対象のヒント（ディレクトリ、モジュール名等）を含める
 - 調査対象: 関連既存コード・仕様書・ADR・技術的制約・関連テスト

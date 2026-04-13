@@ -6,7 +6,9 @@
  * SessionEnd フック。セッション終了時に retrospective スキルの実行リマインダーを表示する。
  * スキル自体の自動実行ではなく、ユーザーへのリマインダー。
  *
- * 条件: session-tool-log.jsonl にエントリがある場合のみ（= セッション中に Edit/Write があった）
+ * 条件: session-tool-log.jsonl または workflow-events.jsonl にエントリがある場合のみ。
+ * 注意: これらのファイルは append-only で複数セッションをまたいで蓄積される。
+ * 前セッションの残存エントリがある場合、コード変更がなくてもリマインダーが表示される。
  * stderr → ユーザへのメッセージとして表示される。
  */
 
