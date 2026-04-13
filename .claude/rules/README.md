@@ -10,6 +10,8 @@
 | docs-structure.md | ドキュメント配置・命名規則 | `docs/**/*` |
 | feedback-recording.md | フィードバック記録ルール | 常時 |
 | workflow.md | ワークフロー定義・タスク規模別ルール・Invariants・Policies | 常時 |
+| observation-injection.md | セッション開始時の観察結果注入 | 常時 |
+| observation-management.md | 観点のライフサイクル管理 | 常時 |
 
 ※ Git運用ルールは commit スキルに統合済み。
 
