@@ -27,7 +27,7 @@
 import { readFileSync } from "node:fs";
 
 // coordinator が直接編集してよいファイルパターン
-const WHITELIST = [
+export const WHITELIST = [
   /\/\.claude\/harness\//,  // .claude/harness/ 配下（session-feedback.jsonl 等の運用ファイル）
   /\/HANDOVER\.md$/,      // HANDOVER.md
   /\/CLAUDE\.md$/,        // CLAUDE.md
@@ -38,27 +38,29 @@ const WHITELIST = [
   /\/docs\/plans\//,      // docs/plans/ 配下（plan.md はメインセッションの責務）
 ];
 
+if (import.meta.url === `file://${process.argv[1]}`) {
 try {
-  const input = JSON.parse(readFileSync(0, "utf-8"));
-
-  // サブエージェントからの呼び出しは許可
-  if (input.agent_id || input.agent_type) {
-    process.exit(0);
+    const input = JSON.parse(readFileSync(0, "utf-8"));
+  
+    // サブエージェントからの呼び出しは許可
+    if (input.agent_id || input.agent_type) {
+      process.exit(0);
+    }
+  
+    const filePath = input?.tool_input?.file_path || "";
+  
+    // ホワイトリストに一致するファイルは許可
+    if (WHITELIST.some((pattern) => pattern.test(filePath))) {
+      process.exit(0);
+    }
+  
+    // coordinator がコードを書こうとしている → ブロック
+    console.error(
+      `[harness] コーディネーターは直接コードを書けません。implementer エージェントにディスパッチしてください。\n対象ファイル: ${filePath}`,
+    );
+    process.exit(2);
+  } catch (err) {
+    console.error(`[coordinator-write-guard] ${err.message}`);
+    process.exit(2);
   }
-
-  const filePath = input?.tool_input?.file_path || "";
-
-  // ホワイトリストに一致するファイルは許可
-  if (WHITELIST.some((pattern) => pattern.test(filePath))) {
-    process.exit(0);
-  }
-
-  // coordinator がコードを書こうとしている → ブロック
-  console.error(
-    `[harness] コーディネーターは直接コードを書けません。implementer エージェントにディスパッチしてください。\n対象ファイル: ${filePath}`,
-  );
-  process.exit(2);
-} catch (err) {
-  console.error(`[coordinator-write-guard] ${err.message}`);
-  process.exit(2);
 }

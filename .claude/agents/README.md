@@ -44,7 +44,7 @@
 | product-user-reviewer | Sonnet | Read, Grep, Glob, Bash, WebFetch | code-review (Phase 2.5) | プロダクトコード変更時 |
 | harness-user-reviewer | Sonnet | Read, Grep, Glob, Bash | code-review (Phase 2.5) | .claude/ 配下変更時 |
 | meta-observer | Opus | Read, Grep, Glob, Bash | retrospective | 直近3セッション以内に未実行の場合 |
-| review-memory-curator | Sonnet | Read, Grep, Glob | code-review (Phase 2) | レビュー指摘あり時 |
+| review-memory-curator | Opus | Read, Grep, Glob | code-review (Phase 2) | レビュー指摘あり時 |
 
 ### モジュールエージェント（条件付き展開）
 

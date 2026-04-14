@@ -91,6 +91,7 @@ Claude Code の hooks は `.claude/settings.json` の `hooks` キーで定義す
 - **配置先**: `.claude/settings.json`（Project scope、チーム共有、Copier 配布対象）
 - **フック本体**: `.claude/hooks/scripts/*.mjs`
 - **自己検証**: `node scripts/verify-hooks.mjs`（hooks 定義と post-tool-log の発火を確認）
+- **スキル/ガード整合性検証**: `node scripts/verify-guard-consistency.mjs`（スキル指示 vs WHITELIST の不整合検出）
 
 hooks の動作確認は毎セッション開始時に `verify-hooks.mjs` で検証することを推奨。
 

@@ -216,17 +216,17 @@ describe("Phase 4 L3 メタ監視層: observation-points.yaml の確認", () => 
     }
   });
 
-  // AC-P4-5: 全 point の status が active
-  it("AC-P4-5: 全 point の status が active である（初期状態）", async () => {
+  // AC-P4-5: 全 point の status が有効なライフサイクル値
+  it("AC-P4-5: 全 point の status が active/proposed/deprecated である", async () => {
     const path = resolve(projectRoot, ".claude/harness/observation-points.yaml");
     const content = await readFile(path, "utf-8");
     const { points } = parseObservationPoints(content);
     assert.ok(points.length > 0, "point が1件も見つからない");
+    const validStatuses = ["active", "proposed", "deprecated"];
     for (const point of points) {
-      assert.strictEqual(
-        point.status,
-        "active",
-        `status が active でない point が存在する: id=${point.id}, status=${point.status}`,
+      assert.ok(
+        validStatuses.includes(point.status),
+        `status が active/proposed/deprecated でない point が存在する: id=${point.id}, status=${point.status}`,
       );
     }
   });

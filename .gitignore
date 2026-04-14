@@ -33,3 +33,4 @@ test-results/
 # meta-loop foundation (REQ-002)
 workspace/
 runner/meta-loop/vendor/
+.pnpm-store/
