@@ -44,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - ルール 6個（workflow, security, testing, coding-style, docs-structure, feedback-recording）
 - フック 7個（coordinator-write-guard, secret-scanner, verification-gate, post-verification-scan, post-tool-log, permission-denied-recorder, session-end-retrospective）
 - モジュール: playwright-mcp, figma-mcp
-- eval 行動ベース測定基盤（promptfoo ベース）
+- eval 行動ベース測定基盤（自作 trace 基盤）
 - Copier テンプレート配布
 
 ### Fixed

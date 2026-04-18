@@ -40,7 +40,7 @@ copier update --trust
   rules/     — 常時有効ルール（コーディング・テスト・セキュリティ・Git）
   hooks/     — イベント駆動の自動化
 modules/     — オプションモジュール（Playwright MCP, Figma MCP）
-eval/        — ハーネス効果測定（promptfoo）
+eval/        — ハーネス効果測定（自作 trace 基盤）
 docs/        — 設計書・調査資料・ガイド
 ```
 

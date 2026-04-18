@@ -21,7 +21,7 @@
 modules/                — モジュールのマニフェスト・ドキュメント
   playwright-mcp/       — ブラウザ操作モジュール
   figma-mcp/            — Figma 操作モジュール
-eval/                   — ハーネス効果測定（promptfoo）
+eval/                   — ハーネス効果測定（自作 trace 基盤）
 runner/                 — 外部オーケストレーター群（Copier 配布対象は ralph-runner.sh 系のみ）
   ralph-runner.sh       — RALPH Runner v1: メインループ（ストーリー選択・ステップ実行・状態更新）
   lib/
