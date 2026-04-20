@@ -31,6 +31,26 @@ description: "ワークフローを開始する。ユースケースを選択し
 
 ## プロセス
 
+### 0. モード選択
+
+AskUserQuestion でモードを選択する:
+
+「このセッションの実行モードを選んでください」
+
+| # | モード | 説明 |
+|---|--------|------|
+| 1 | Interactive | 通常の人間協調モード（既定）。各ステップで人間が確認・承認を行う |
+| 2 | Autonomous | Ralph Autonomous mode。`.ralph/config.json` に従い loop 実行。[1][2][3] を事前確定後、[4]-[11] は代替ゲートで自律実行 |
+
+**Autonomous 選択時の分岐:**
+1. プロジェクトルートの `.ralph/config.json` の存在を確認する
+2. 存在しない場合 → 案内してから終了: 「Autonomous mode には `.ralph/config.json` が必要です。先に `/planning` を実行して生成してください」
+3. 存在する場合 → ユースケース選択（ステップ 1）をスキップし、`runner/ralph-autonomous/start-tmux.sh` 起動手順を案内する（Phase 3 実装後に利用可能）
+
+**Interactive 選択時:** 次のステップ（1. ユースケース選択）へ進む
+
+> ADR 0022: Autonomous/Interactive モード切替は `/start-workflow` で毎回明示選択する
+
 ### 1. ユースケース選択
 
 AskUserQuestion でユーザに確認する:

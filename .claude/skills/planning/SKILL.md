@@ -98,6 +98,74 @@ planner の報告をもとに、実装順序を確定する。
 
 計画を人間パートナーに提示し、承認を得る。
 
+### 5. `.ralph/config.json` 生成（Autonomous モードのみ）
+
+`/start-workflow` で Autonomous を選択したセッションのみ実行する。
+
+承認済みの `plan.md` を参照し、以下のスキーマで `.ralph/config.json` を生成する。メインセッションが Write ツールで直接 `.ralph/config.json` に書き込む。
+
+#### `.ralph/config.json` スキーマ
+
+| フィールド | 型 | 必須 | 説明 | 例 |
+|-----------|---|------|------|-----|
+| `schema_version` | string | ✓ | スキーマ版数 | `"1.0"` |
+| `plan_id` | string | ✓ | plan 識別子（kebab-case） | `"kondate-phase6-deploy"` |
+| `branch_name` | string | ✓ | feature branch 名 | `"ralph/kondate-phase6-deploy"` |
+| `mode` | string | ✓ | 固定値 `"autonomous"` | `"autonomous"` |
+| `references.requirements` | string | ✓ | requirements.md のパス | `"requirements/REQ-001/requirements.md"` |
+| `references.design` | string | ✓ | design.md のパス | `"docs/design/my-feature.md"` |
+| `references.plan` | string | ✓ | plan.md のパス | `"docs/plans/my-feature-plan.md"` |
+| `scope.allowed_paths` | string[] | ✓ | 書き込み許可 glob パターン | `["apps/kondate/**"]` |
+| `scope.forbidden_paths` | string[] | ✓ | 書き込み禁止 glob パターン | `[".claude/**", "docs/decisions/**"]` |
+| `scope.max_files_changed` | number | ✓ | iter あたりの最大変更ファイル数 | `30` |
+| `stop_conditions.max_iter` | number | ✓ | 最大 iter 数 | `10` |
+| `stop_conditions.no_progress_iter` | number | ✓ | 無進捗 iter の上限 | `3` |
+| `stop_conditions.same_error_iter` | number | ✓ | 同一エラー繰り返しの上限 | `5` |
+| `stop_conditions.test_only_ratio_threshold` | number | ✓ | テスト only iter の比率上限 | `0.3` |
+| `stop_conditions.time_budget_seconds` | number | ✓ | 実行時間上限（秒） | `7200` |
+| `gates.quality` | string[] | ✓ | quality-gate スクリプト名一覧 | `["00-test.sh", "01-typecheck.sh", "02-e2e.sh"]` |
+| `gates.reviewers` | string[] | ✓ | reviewer 一覧 | `["spec-compliance", "quality", "security"]` |
+| `gates.enforce_review_memory_hot` | boolean | ✓ | review-memory Hot 層を強制適用するか | `true` |
+| `exit_signal.required` | boolean | ✓ | EXIT_SIGNAL の必須フラグ | `true` |
+| `exit_signal.marker` | string | ✓ | EXIT_SIGNAL マーカー文字列 | `"EXIT_SIGNAL"` |
+
+#### 生成例
+
+```json
+{
+  "schema_version": "1.0",
+  "plan_id": "kondate-phase6-deploy",
+  "branch_name": "ralph/kondate-phase6-deploy",
+  "mode": "autonomous",
+  "references": {
+    "requirements": "requirements/REQ-001/requirements.md",
+    "design": "docs/design/kondate-phase6.md",
+    "plan": "docs/plans/kondate-phase6-plan.md"
+  },
+  "scope": {
+    "allowed_paths": ["apps/kondate/**"],
+    "forbidden_paths": [".claude/**", "docs/decisions/**"],
+    "max_files_changed": 30
+  },
+  "stop_conditions": {
+    "max_iter": 10,
+    "no_progress_iter": 3,
+    "same_error_iter": 5,
+    "test_only_ratio_threshold": 0.3,
+    "time_budget_seconds": 7200
+  },
+  "gates": {
+    "quality": ["00-test.sh", "01-typecheck.sh", "02-e2e.sh"],
+    "reviewers": ["spec-compliance", "quality", "security"],
+    "enforce_review_memory_hot": true
+  },
+  "exit_signal": {
+    "required": true,
+    "marker": "EXIT_SIGNAL"
+  }
+}
+```
+
 ## 出力ファイル構成
 
 `docs/plans/` に計画ドキュメントを作成する:
@@ -112,6 +180,8 @@ requirements/
   REQ-001-xxx/
     requirements.md   # 要件（requirements スキルで作成済み）
     context.md
+.ralph/               # Autonomous mode のみ
+  config.json         # ★ループ設定（ステップ 5 で生成）
 ```
 
 ## plan.md テンプレート
@@ -282,6 +352,14 @@ Task-1 → Task-2 → Task-3
 
 5. **承認後、tdd スキルに進む**
    - plan.md の Task-1 から順に tdd スキルで実装を開始する
+
+6. **Autonomous mode の場合、`.ralph/config.json` を生成する**
+   - `/start-workflow` で Autonomous を選択したセッションのみ実行する
+   - プロジェクトルートに `.ralph/config.json` をメインセッションが Write ツールで直接書き込む
+   - スキーマは上の「`.ralph/config.json` スキーマ」テーブルに従う
+   - `plan_id` は plan.md ファイル名のスラッグ部分（例: `my-feature-plan.md` → `"my-feature"`）
+   - `branch_name` は `"ralph/<plan_id>"` 形式
+   - `scope.allowed_paths` と `scope.forbidden_paths` は人間パートナーと確認して決める
 
 ## Integration
 
