@@ -21,6 +21,27 @@ import {
   promoteCluster,
   rebuildConventions,
 } from "../review-memory.mjs";
+import { resolve } from "node:path";
+import { spawn } from "node:child_process";
+
+// --- CLI ヘルパー（add-sign テスト用）---
+
+const CLI_PATH = resolve("scripts/review-memory.mjs");
+const CLI_CWD = resolve(".");
+
+function runCli(args, stdin = "") {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn("node", [CLI_PATH, ...args], { cwd: CLI_CWD, env: process.env });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => (stdout += d.toString()));
+    child.stderr.on("data", (d) => (stderr += d.toString()));
+    child.on("close", (code) => resolvePromise({ code, stdout, stderr }));
+    child.on("error", reject);
+    if (stdin) child.stdin.write(stdin);
+    child.stdin.end();
+  });
+}
 import { createTmpContext } from "./_helpers.mjs";
 
 // --- テスト用ヘルパー ---
@@ -840,5 +861,137 @@ describe("rebuildConventions", () => {
     const files = await readdir(ctx.getTmpDir());
     const tmpFiles = files.filter((f) => f.startsWith("atomic-conventions.md.tmp"));
     assert.equal(tmpFiles.length, 0, "no tmp files should remain");
+  });
+});
+
+// --- add-sign (AC 由来: 4件) ---
+
+describe("CLI: add-sign", () => {
+  before(setup);
+  after(teardown);
+
+  // AC-SIGN-1: 有効な Sign JSON を stdin に渡すと finding が追加されて {"id": "rf-NNN"} が返る
+  it("AC-SIGN-1: add-sign - valid Sign JSON is appended as finding and returns {id: rf-NNN}", async () => {
+    const findingsPath = tmpPath("add-sign-basic.jsonl");
+    const sign = {
+      date: "2026-04-20",
+      project: "test",
+      category: "naming",
+      trigger: "変数名が1文字の場合",
+      instruction: "意図を表す名前を使う",
+      reason: "可読性向上のため",
+      provenance: "plan-001",
+    };
+
+    const result = await runCli(["add-sign", "--findings", findingsPath], JSON.stringify(sign));
+
+    assert.equal(result.code, 0, `exit code should be 0, stderr: ${result.stderr}`);
+    const parsed = JSON.parse(result.stdout.trim());
+    assert.ok("id" in parsed, "stdout should contain id field");
+    assert.match(parsed.id, /^rf-\d{3}$/, "id should match rf-NNN format");
+
+    // finding が実際に追記されている
+    const findings = await readFindings(findingsPath);
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].id, parsed.id);
+  });
+
+  // AC-SIGN-2: finding として type: "sign", reviewer: "sign" が設定されている
+  it("AC-SIGN-2: add-sign - finding has type: sign and reviewer: sign", async () => {
+    const findingsPath = tmpPath("add-sign-fields.jsonl");
+    const sign = {
+      date: "2026-04-20",
+      project: "test",
+      category: "naming",
+      trigger: "変数名が1文字の場合",
+      instruction: "意図を表す名前を使う",
+      reason: "可読性向上のため",
+      provenance: "plan-001",
+    };
+
+    await runCli(["add-sign", "--findings", findingsPath], JSON.stringify(sign));
+
+    const findings = await readFindings(findingsPath);
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].type, "sign", "type should be 'sign'");
+    assert.equal(findings[0].reviewer, "sign", "reviewer should be 'sign'");
+    assert.equal(findings[0].severity, "CONSIDER", "severity should be 'CONSIDER'");
+    assert.equal(findings[0].file, "progress.txt", "file should be 'progress.txt'");
+    assert.equal(findings[0].pattern, sign.trigger, "pattern should equal trigger");
+    assert.equal(findings[0].suggestion, sign.instruction, "suggestion should equal instruction");
+    assert.equal(findings[0].reason, sign.reason, "reason should be preserved");
+    assert.equal(findings[0].provenance, sign.provenance, "provenance should be preserved");
+  });
+
+  // AC-SIGN-3: 必須フィールド欠落で exit 1 + エラーメッセージ
+  it("AC-SIGN-3: add-sign - missing required field causes exit 1 with error message", async () => {
+    const findingsPath = tmpPath("add-sign-missing.jsonl");
+    // 'instruction' フィールドが欠けている
+    const sign = {
+      date: "2026-04-20",
+      project: "test",
+      category: "naming",
+      trigger: "変数名が1文字の場合",
+      reason: "可読性向上のため",
+      provenance: "plan-001",
+    };
+
+    const result = await runCli(["add-sign", "--findings", findingsPath], JSON.stringify(sign));
+
+    assert.equal(result.code, 1, "exit code should be 1 for missing required field");
+    assert.ok(result.stderr.length > 0, "stderr should contain error message");
+    assert.ok(
+      result.stderr.includes("instruction"),
+      `stderr should mention the missing field 'instruction', got: ${result.stderr}`,
+    );
+  });
+
+  // AC-SIGN-4: add-sign → promote-all → review-conventions.md に反映される
+  it("AC-SIGN-4: add-sign -> promote-all -> review-conventions.md receives the sign entry", async () => {
+    const findingsPath = tmpPath("add-sign-promote-findings.jsonl");
+    const archivePath = tmpPath("add-sign-promote-archive.jsonl");
+    const conventionsPath = tmpPath("add-sign-promote-conventions.md");
+    await writeFile(conventionsPath, "<!-- MANUAL:START -->\n<!-- MANUAL:END -->\n<!-- AUTO:START -->\n<!-- AUTO:END -->\n");
+
+    const sign = {
+      date: "2026-04-20",
+      project: "test",
+      category: "naming",
+      trigger: "変数名が1文字の場合",
+      instruction: "意図を表す名前を使う",
+      reason: "可読性向上のため",
+      provenance: "plan-001",
+    };
+
+    // 同じ cluster_id を持つエントリを2件追加して promote-all が昇格できるようにする
+    // 1件目: add-sign で追加し cluster_id を --cluster で設定
+    const result1 = await runCli(
+      ["add-sign", "--findings", findingsPath, "--cluster", "c-001"],
+      JSON.stringify(sign),
+    );
+    assert.equal(result1.code, 0, `1st add-sign failed: ${result1.stderr}`);
+
+    // 2件目: 同じ cluster_id c-001 で再度追加
+    const result2 = await runCli(
+      ["add-sign", "--findings", findingsPath, "--cluster", "c-001"],
+      JSON.stringify(sign),
+    );
+    assert.equal(result2.code, 0, `2nd add-sign failed: ${result2.stderr}`);
+
+    // promote-all を実行
+    const promoteResult = await runCli([
+      "promote-all",
+      "--findings", findingsPath,
+      "--archive", archivePath,
+      "--conventions", conventionsPath,
+    ]);
+    assert.equal(promoteResult.code, 0, `promote-all failed: ${promoteResult.stderr}`);
+    const promoted = JSON.parse(promoteResult.stdout.trim());
+    assert.ok(promoted.promoted.includes("c-001"), "c-001 should be promoted");
+
+    // conventions.md に sign のパターンが反映されている
+    const content = await readFile(conventionsPath, "utf-8");
+    assert.ok(content.includes("変数名が1文字の場合"), "conventions should contain the trigger as pattern");
+    assert.ok(content.includes("意図を表す名前を使う"), "conventions should contain the instruction as suggestion");
   });
 });

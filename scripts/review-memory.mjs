@@ -522,7 +522,7 @@ function validateFinding(entry) {
   }
 
   // reviewer / severity / cluster_id チェック
-  const validReviewers = ["spec", "quality", "security"];
+  const validReviewers = ["spec", "quality", "security", "sign"];
   if (!validReviewers.includes(entry.reviewer)) {
     throw new Error(`Invalid reviewer: ${entry.reviewer}. Must be one of: ${validReviewers.join(", ")}`);
   }
@@ -538,8 +538,28 @@ function validateFinding(entry) {
   }
 }
 
+/**
+ * Sign エントリのバリデーション。
+ * 不正な場合は Error を throw する。
+ *
+ * @param {object} entry
+ */
+function validateSign(entry) {
+  const required = ["date", "project", "category", "trigger", "instruction", "reason", "provenance"];
+  for (const field of required) {
+    if (!(field in entry) || typeof entry[field] !== "string" || entry[field].length === 0) {
+      throw new Error(`Missing or invalid required field: ${field}`);
+    }
+  }
+  // category の allowlist（英数字・ハイフン・アンダースコア）
+  if (!/^[a-zA-Z0-9_-]+$/.test(entry.category)) {
+    throw new Error(`category must match /^[a-zA-Z0-9_-]+$/, got: ${entry.category}`);
+  }
+}
+
 const USAGE = `Usage:
   review-memory.mjs add [--findings <path>] [--new-cluster | --cluster <id>]
+  review-memory.mjs add-sign [--findings <path>] [--cluster <id>]
   review-memory.mjs representatives [--findings <path>]
   review-memory.mjs promote <cluster_id> [--findings <path>] [--archive <path>] [--conventions <path>]
   review-memory.mjs promote-all [--findings <path>] [--archive <path>] [--conventions <path>]
@@ -609,6 +629,74 @@ async function main() {
         output.cluster_id = entry.cluster_id;
       }
       process.stdout.write(JSON.stringify(output) + "\n");
+      break;
+    }
+
+    case "add-sign": {
+      const { values: signValues } = parseArgs({
+        args: rest,
+        options: {
+          findings: { type: "string" },
+          cluster: { type: "string" },
+        },
+        allowPositionals: true,
+        strict: false,
+      });
+
+      const findingsPath = signValues.findings ?? DEFAULT_FINDINGS;
+      const useCluster = signValues.cluster ?? null;
+
+      const raw = await readStdin();
+      if (!raw.trim()) {
+        process.stderr.write("invalid JSON: stdin is empty\n");
+        process.exit(1);
+      }
+
+      let signEntry;
+      try {
+        signEntry = JSON.parse(raw);
+      } catch {
+        process.stderr.write("invalid JSON: failed to parse stdin\n");
+        process.exit(1);
+      }
+
+      try {
+        validateSign(signEntry);
+      } catch (err) {
+        process.stderr.write(err.message + "\n");
+        process.exit(1);
+      }
+
+      // Sign → Finding マッピング
+      const finding = {
+        date: signEntry.date,
+        project: signEntry.project,
+        category: signEntry.category,
+        pattern: signEntry.trigger,
+        suggestion: signEntry.instruction,
+        reviewer: "sign",
+        severity: "CONSIDER",
+        file: "progress.txt",
+        type: "sign",
+        trigger: signEntry.trigger,
+        instruction: signEntry.instruction,
+        reason: signEntry.reason,
+        provenance: signEntry.provenance,
+        cluster_id: null,
+      };
+
+      if (signEntry.plan_id !== undefined) {
+        finding.plan_id = signEntry.plan_id;
+      }
+
+      if (useCluster) {
+        finding.cluster_id = useCluster;
+      }
+
+      finding.id = await nextFindingId(findingsPath);
+      await appendFinding(findingsPath, finding);
+
+      process.stdout.write(JSON.stringify({ id: finding.id }) + "\n");
       break;
     }
 
