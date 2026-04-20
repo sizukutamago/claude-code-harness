@@ -36,6 +36,7 @@ export const WHITELIST = [
   /\/docs\/design\//,     // docs/design/ 配下（design.md はメインセッションの責務）
   /\/docs\/decisions\//,  // docs/decisions/ 配下（ADR はメインセッションの責務）
   /\/docs\/plans\//,      // docs/plans/ 配下（plan.md はメインセッションの責務）
+  /\/\.ralph\/config\.json$/,  // .ralph/config.json（planning スキルが Autonomous mode 時に生成）
 ];
 
 if (import.meta.url === `file://${process.argv[1]}`) {

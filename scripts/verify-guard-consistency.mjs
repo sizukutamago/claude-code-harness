@@ -48,6 +48,7 @@ const KNOWN_PATH_CANDIDATES = [
   ".claude/harness/",
   "HANDOVER.md",
   "CLAUDE.md",
+  ".ralph/config.json",
 ];
 
 /**
