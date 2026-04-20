@@ -30,6 +30,24 @@ import { appendFileSync, existsSync, readdirSync, readFileSync, statSync } from 
 import { join, resolve } from "node:path";
 
 /**
+ * stability summary.json から指定 case_id の pass_k を取得する。
+ *
+ * @param {string} summaryJsonPath - summary.json のパス
+ * @param {string} caseId - 検索する case_id
+ * @returns {number | null} pass_k（見つからない場合は null）
+ */
+function getStabilityPassK(summaryJsonPath, caseId) {
+  try {
+    const raw = readFileSync(summaryJsonPath, "utf-8");
+    const summary = JSON.parse(raw);
+    const entry = summary.per_case?.find((c) => c.case_id === caseId);
+    return entry ? entry.pass_k : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * コマンドを実行して stdout を返す。失敗した場合は null を返す。
  *
  * @param {string} cmd
@@ -135,8 +153,14 @@ function countStoriesDone(progressPath) {
  * @param {string} workspacePath
  * @param {string} outputJsonl
  * @param {string} harnessName
+ * @param {object} [options]
+ * @param {string|null} [options.stabilityJson=null] - stability summary.json のパス
+ * @param {string|null} [options.stabilityCaseId=null] - 対象 case_id
  */
-function collectMetrics(workspacePath, outputJsonl, harnessName) {
+function collectMetrics(workspacePath, outputJsonl, harnessName, {
+  stabilityJson = null,
+  stabilityCaseId = null,
+} = {}) {
   const absWorkspace = resolve(workspacePath);
 
   if (!existsSync(absWorkspace)) {
@@ -179,16 +203,40 @@ function collectMetrics(workspacePath, outputJsonl, harnessName) {
     total_commits: totalCommits,
   };
 
+  // --stability と --stability-case が両方指定された場合、stability_pass_k を追加
+  if (stabilityJson && stabilityCaseId) {
+    entry.stability_pass_k = getStabilityPassK(stabilityJson, stabilityCaseId);
+  }
+
   const line = JSON.stringify(entry) + "\n";
   appendFileSync(outputJsonl, line, "utf-8");
 }
 
 // CLI エントリポイント
-const [, , workspacePath, outputJsonl, harnessName = "claude-code-harness"] = process.argv;
+const argv = process.argv.slice(2);
+
+// ポジション引数と --stability / --stability-case を分離する
+const positionalArgs = [];
+let stabilityJson = null;
+let stabilityCaseId = null;
+
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] === "--stability" && i + 1 < argv.length) {
+    stabilityJson = argv[++i];
+  } else if (argv[i] === "--stability-case" && i + 1 < argv.length) {
+    stabilityCaseId = argv[++i];
+  } else {
+    positionalArgs.push(argv[i]);
+  }
+}
+
+const [workspacePath, outputJsonl, harnessName = "claude-code-harness"] = positionalArgs;
 
 if (!workspacePath || !outputJsonl) {
-  process.stderr.write("Usage: node scripts/eval-harness.mjs <workspace-path> <output-jsonl> [harness-name]\n");
+  process.stderr.write(
+    "Usage: node scripts/eval-harness.mjs <workspace-path> <output-jsonl> [harness-name] [--stability <summary.json>] [--stability-case <case-id>]\n",
+  );
   process.exit(1);
 }
 
-collectMetrics(workspacePath, outputJsonl, harnessName);
+collectMetrics(workspacePath, outputJsonl, harnessName, { stabilityJson, stabilityCaseId });

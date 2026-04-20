@@ -14,14 +14,11 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { resolve, basename } from "node:path";
+import { resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { parseStreamJson, buildTrace } from "./lib/trace.mjs";
-import { runAssertionPipeline } from "./lib/assertions.mjs";
-import { claudeRun, checkLlmRubricTrace } from "./lib/claude-cli.mjs";
 import { mapWithConcurrency } from "./lib/concurrency.mjs";
-import { prepareWorkdir, cleanupWorkdir } from "./lib/workdir.mjs";
 import { parseCliArgs } from "./lib/cli-args.mjs";
+import { runSingleTest } from "./lib/test-runner.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -29,68 +26,6 @@ const ROOT = resolve(import.meta.dirname, "..");
 const EVAL_DIR = resolve(import.meta.dirname);
 
 const DEFAULT_CONCURRENCY = 3;
-
-// --- 単一テストの実行 ---
-
-async function runSingleTest(test, { caseFile, caseFixture, defaultMaxTurns }) {
-  const caseId = `${basename(caseFile, ".yaml")}/${test.description}`;
-  const maxTurns = test.run?.max_turns || defaultMaxTurns;
-  const fixture = test.fixture || caseFixture;
-
-  // 1. 一時ディレクトリを作成し fixture をコピー（ルールあり）
-  const workdir = prepareWorkdir(fixture);
-
-  // 2. Claude Code 実行 (stream-json)
-  let ndjson;
-  try {
-    ndjson = await claudeRun(test.vars.task, { maxTurns, cwd: workdir });
-  } catch (err) {
-    cleanupWorkdir(workdir);
-    console.log(`  ${test.description} ... INFRA_ERROR`);
-    return {
-      case_id: caseId,
-      case_file: caseFile,
-      description: test.description,
-      task: test.vars.task,
-      infra_error: err.message,
-      pass: null,
-    };
-  }
-
-  // 3. trace-v1 に正規化
-  const rawMessages = parseStreamJson(ndjson);
-  const trace = buildTrace({
-    rawMessages,
-    caseId,
-    caseFile,
-    testDescription: test.description,
-    task: test.vars.task,
-  });
-
-  // 4. 決定的 assertion + llm-rubric-trace を実行
-  const results = await runAssertionPipeline(trace, test.assert || [], checkLlmRubricTrace);
-
-  const allPass = results.every((r) => r.pass === true);
-  console.log(`  ${test.description} ... ${allPass ? "PASS" : "FAIL"}`);
-
-  if (!allPass) {
-    for (const r of results.filter((r) => !r.pass)) {
-      console.log(`    x ${r.type}: ${r.reason}`);
-    }
-  }
-
-  cleanupWorkdir(workdir);
-
-  return {
-    case_id: caseId,
-    case_file: caseFile,
-    description: test.description,
-    task: test.vars.task,
-    pass: allPass,
-    assertions: results,
-    trace,
-  };
-}
 
 // --- メイン ---
 
