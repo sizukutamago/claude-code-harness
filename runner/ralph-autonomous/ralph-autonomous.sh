@@ -35,6 +35,10 @@ source "${SCRIPT_DIR}/lib/invoker.sh"
 source "${SCRIPT_DIR}/lib/scope-check.sh"
 # shellcheck source=lib/gates.sh
 source "${SCRIPT_DIR}/lib/gates.sh"
+# shellcheck source=lib/checkpoint.sh
+source "${SCRIPT_DIR}/lib/checkpoint.sh"
+# shellcheck source=lib/test-only-detect.sh
+source "${SCRIPT_DIR}/lib/test-only-detect.sh"
 
 # ---------------------------------------------------------------------------
 # parse_args
@@ -168,6 +172,21 @@ main() {
   # ------ iter++ / reset failure ------
   state_increment "${state_file}" "iter"
   state_reset_failure "${state_file}"
+
+  # ------ checkpoint（N iter ごとに git tag を打つ）------
+  local iter_val
+  iter_val="$(state_read "${state_file}" "iter")"
+  if should_checkpoint "${config_file}" "${iter_val}"; then
+    checkpoint_create "${config_file}" "${state_file}" "${iter_val}"
+  fi
+
+  # ------ test-only-detect（テストのみ iter の検知）------
+  local test_only_exit=0
+  detect_test_only_iter "${config_file}" "${state_file}" "${cwd}" || test_only_exit=$?
+  if [ "${test_only_exit}" -eq 3 ]; then
+    echo "[ralph-autonomous] test-only streak circuit breaker" >&2
+    exit 3
+  fi
 
   exit 0
 }

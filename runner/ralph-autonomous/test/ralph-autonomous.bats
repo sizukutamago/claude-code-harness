@@ -175,6 +175,137 @@ SCRIPT
 }
 
 # ---------------------------------------------------------------------------
+# T-18/T-19: checkpoint tag が打たれる（N iter ごと）
+# ---------------------------------------------------------------------------
+@test "checkpoint tag is created when iter is a multiple of checkpoint_every" {
+  # config.json に checkpoint_every=5 を追加
+  mkdir -p "${RATEST_WORKSPACE}/.ralph"
+  cat > "${RATEST_WORKSPACE}/.ralph/config.json" <<JSON
+{
+  "schema_version": "1.0",
+  "plan_id": "test-plan",
+  "branch_name": "ralph/test-plan",
+  "mode": "autonomous",
+  "references": {
+    "requirements": "docs/requirements/test.md",
+    "design": "docs/design/test.md",
+    "plan": "docs/plans/test.md"
+  },
+  "scope": {
+    "allowed_paths": ["src/**","tests/**"],
+    "forbidden_paths": [".claude/**","docs/decisions/**"],
+    "max_files_changed": 30
+  },
+  "stop_conditions": {
+    "max_iter": 10,
+    "no_progress_iter": 3,
+    "same_error_iter": 5,
+    "test_only_ratio_threshold": 0.3,
+    "time_budget_seconds": 7200,
+    "checkpoint_every": 5
+  },
+  "gates": {
+    "quality": ["00-test.sh"],
+    "reviewers": ["spec-compliance", "quality", "security"],
+    "enforce_review_memory_hot": true
+  },
+  "exit_signal": {
+    "required": true,
+    "marker": "EXIT_SIGNAL"
+  }
+}
+JSON
+
+  # iter が 4 の state.json をプリセット（iter++ で 5 になる）
+  cat > "${RATEST_WORKSPACE}/.ralph/state.json" <<JSON
+{"iter":4,"consecutive_failures":0,"no_progress_streak":0,"same_error_streak":0,"last_error_hash":"","test_only_streak":0,"checkpoint_tags":[]}
+JSON
+
+  export FAKE_CLAUDE_EXIT_CODE=0
+  export FAKE_CLAUDE_STDOUT="task completed"
+  export FAKE_GIT_STDOUT=""
+  export FAKE_GIT_LOG_FILE="${BATS_TEST_TMPDIR}/git-calls.log"
+  ralph_autonomous_path_stub "claude" "${BATS_TEST_DIRNAME}/fixtures/fake-claude.sh"
+  ralph_autonomous_path_stub "git" "${BATS_TEST_DIRNAME}/fixtures/fake-git.sh"
+
+  cat > "${RALPH_GATES_DIR}/00-test.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+echo "test gate: PASS"
+exit 0
+SCRIPT
+  chmod +x "${RALPH_GATES_DIR}/00-test.sh"
+
+  run bash "${RALPH_AUTONOMOUS_SH}" --resume --config "${RATEST_WORKSPACE}/.ralph"
+  [ "${status}" -eq 0 ]
+
+  # git tag ralph-checkpoint-5 が呼ばれていることを確認
+  [ -f "${FAKE_GIT_LOG_FILE}" ]
+  grep -q "tag.*ralph-checkpoint-5" "${FAKE_GIT_LOG_FILE}"
+}
+
+# ---------------------------------------------------------------------------
+# T-18/T-19: テストのみ iter が streak++ される
+# ---------------------------------------------------------------------------
+@test "test_only_streak increments when only test files are changed" {
+  ralph_autonomous_write_config "${RATEST_WORKSPACE}"
+
+  export FAKE_CLAUDE_EXIT_CODE=0
+  export FAKE_CLAUDE_STDOUT="task completed"
+  # テストファイルのみが変更された想定（git diff HEAD~1 HEAD --name-only の戻り値）
+  export FAKE_GIT_STDOUT="src/foo.test.ts"
+  ralph_autonomous_path_stub "claude" "${BATS_TEST_DIRNAME}/fixtures/fake-claude.sh"
+  ralph_autonomous_path_stub "git" "${BATS_TEST_DIRNAME}/fixtures/fake-git.sh"
+
+  cat > "${RALPH_GATES_DIR}/00-test.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+echo "test gate: PASS"
+exit 0
+SCRIPT
+  chmod +x "${RALPH_GATES_DIR}/00-test.sh"
+
+  run bash "${RALPH_AUTONOMOUS_SH}" --config "${RATEST_WORKSPACE}/.ralph"
+  [ "${status}" -eq 0 ]
+
+  # state.json の test_only_streak が 1 になっている
+  local state_file="${RATEST_WORKSPACE}/.ralph/state.json"
+  [ -f "${state_file}" ]
+  run jq -r '.test_only_streak' "${state_file}"
+  [ "${output}" = "1" ]
+}
+
+# ---------------------------------------------------------------------------
+# T-18/T-19: test-only streak 上限でサーキットブレーカー
+# ---------------------------------------------------------------------------
+@test "exits 3 when test_only_streak exceeds threshold" {
+  ralph_autonomous_write_config "${RATEST_WORKSPACE}"
+
+  # test_only_streak を閾値超過（max_iter=10, threshold=0.3 → threshold_count=3）でプリセット
+  # streak=3 超過 = 4 以上で exit 3 になる想定だが、
+  # detect_test_only_iter は streak++ 後にチェックするので streak=3 の state + テストファイルのみの変更で
+  # streak が 4 になり threshold_count=3 を超えて exit 3 になる
+  cat > "${RATEST_WORKSPACE}/.ralph/state.json" <<JSON
+{"iter":3,"consecutive_failures":0,"no_progress_streak":0,"same_error_streak":0,"last_error_hash":"","test_only_streak":3,"checkpoint_tags":[]}
+JSON
+
+  export FAKE_CLAUDE_EXIT_CODE=0
+  export FAKE_CLAUDE_STDOUT="task completed"
+  # テストファイルのみが変更された（streak を +1 して閾値超過させる）
+  export FAKE_GIT_STDOUT="src/foo.test.ts"
+  ralph_autonomous_path_stub "claude" "${BATS_TEST_DIRNAME}/fixtures/fake-claude.sh"
+  ralph_autonomous_path_stub "git" "${BATS_TEST_DIRNAME}/fixtures/fake-git.sh"
+
+  cat > "${RALPH_GATES_DIR}/00-test.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+echo "test gate: PASS"
+exit 0
+SCRIPT
+  chmod +x "${RALPH_GATES_DIR}/00-test.sh"
+
+  run bash "${RALPH_AUTONOMOUS_SH}" --resume --config "${RATEST_WORKSPACE}/.ralph"
+  [ "${status}" -eq 3 ]
+}
+
+# ---------------------------------------------------------------------------
 # AC-10: reviewer gate 失敗（REVIEW_MUST）→ exit 5
 # ---------------------------------------------------------------------------
 @test "exit 5 when reviewer returns REVIEW_MUST" {
