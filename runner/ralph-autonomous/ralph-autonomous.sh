@@ -39,6 +39,8 @@ source "${SCRIPT_DIR}/lib/gates.sh"
 source "${SCRIPT_DIR}/lib/checkpoint.sh"
 # shellcheck source=lib/test-only-detect.sh
 source "${SCRIPT_DIR}/lib/test-only-detect.sh"
+# shellcheck source=lib/observation.sh
+source "${SCRIPT_DIR}/lib/observation.sh"
 
 # ---------------------------------------------------------------------------
 # parse_args
@@ -141,6 +143,14 @@ main() {
     if [ "${scope_exit}" -ne 0 ]; then
       echo "[ralph-autonomous] scope check failed after EXIT_SIGNAL" >&2
       exit 6
+    fi
+    # observation dispatch（RALPH_SKIP_OBSERVATION=1 でスキップ）
+    if [ "${RALPH_SKIP_OBSERVATION:-0}" != "1" ]; then
+      local observation_exit=0
+      observation_dispatch_exit "${cwd}" "${log_dir}" || observation_exit=$?
+      if [ "${observation_exit}" -ne 0 ]; then
+        echo "[ralph-autonomous] observation dispatch failed (exit=${observation_exit}), continuing" >&2
+      fi
     fi
     exit 10
   fi

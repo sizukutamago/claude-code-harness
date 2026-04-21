@@ -112,6 +112,20 @@ ${progress_content}
 3. 実装完了後 plan.md の該当チェックボックスを \`- [x]\` に更新
 4. progress.txt に学びを追記してコミット
 5. 全タスクが完了している場合のみ "EXIT_SIGNAL" を最終行に出力して終了
+
+## 気づきの記録（重要）
+
+実装中に気づいたワークフローの抜け穴・スキル間矛盾・既存ハーネスの問題点は、
+progress.txt に以下のフォーマットで追記してください:
+
+\`\`\`
+## 気づき (iter N)
+- [trigger]: <何が起きたか>
+- [instruction]: <今後どうすべきか>
+- [reason]: <なぜ>
+\`\`\`
+
+これは harness-user-reviewer が Sign 化パイプラインで参照します。
 PROMPT
 }
 
