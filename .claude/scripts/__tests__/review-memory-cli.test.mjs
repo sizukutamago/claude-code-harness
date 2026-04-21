@@ -23,7 +23,7 @@ const setup = ctx.setup;
 const teardown = ctx.teardown;
 const tmpPath = ctx.tmpPath;
 
-const CLI_PATH = resolve("scripts/review-memory.mjs");
+const CLI_PATH = resolve(".claude/scripts/review-memory.mjs");
 const CWD = resolve(".");
 
 /**

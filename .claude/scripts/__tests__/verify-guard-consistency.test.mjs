@@ -16,7 +16,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-const verifyGuardScript = resolve(process.cwd(), "scripts/verify-guard-consistency.mjs");
+const verifyGuardScript = resolve(process.cwd(), ".claude/scripts/verify-guard-consistency.mjs");
 
 /**
  * verify-guard-consistency.mjs をプロジェクトルートを変えて実行するヘルパー

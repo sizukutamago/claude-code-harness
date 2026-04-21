@@ -284,7 +284,7 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
 
 1. **既存クラスタの代表を取得する**
    ```
-   node scripts/review-memory.mjs representatives
+   node .claude/scripts/review-memory.mjs representatives
    ```
    - 出力: JSON 配列 `[{cluster_id, category, pattern, suggestion}, ...]`
    - `.claude/harness/review-memory/review-findings.jsonl` が空またはファイルが存在しない場合は空配列
@@ -321,11 +321,11 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
    **グループ内の追記手順:**
    ```bash
    # グループ内の1件目: --new-cluster で新規 cluster_id を自動採番して追記
-   echo '<finding_json>' | node scripts/review-memory.mjs add --new-cluster
+   echo '<finding_json>' | node .claude/scripts/review-memory.mjs add --new-cluster
    # → stdout に {"id": "rf-NNN", "cluster_id": "c-NNN"} が返る
 
    # グループ内の2件目以降: 1件目で得た cluster_id を --cluster で指定して追記
-   echo '<finding_json>' | node scripts/review-memory.mjs add --cluster c-NNN
+   echo '<finding_json>' | node .claude/scripts/review-memory.mjs add --cluster c-NNN
    ```
 
    - `--new-cluster` と `--cluster` を両方指定するとエラー（exit 1）
@@ -354,13 +354,13 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
 7. **各 finding を CLI で追記する（Phase 2-c の手順に従う）**
    ```bash
    # 既存クラスタにマージする場合（Phase 2-b で cluster_id が決定済み）
-   echo '<finding_json>' | node scripts/review-memory.mjs add
+   echo '<finding_json>' | node .claude/scripts/review-memory.mjs add
 
    # 新規クラスタのグループ内1件目
-   echo '<finding_json>' | node scripts/review-memory.mjs add --new-cluster
+   echo '<finding_json>' | node .claude/scripts/review-memory.mjs add --new-cluster
 
    # 新規クラスタのグループ内2件目以降
-   echo '<finding_json>' | node scripts/review-memory.mjs add --cluster c-NNN
+   echo '<finding_json>' | node .claude/scripts/review-memory.mjs add --cluster c-NNN
    ```
    - CLI エラーが発生した場合: stderr に出力し、次の finding の追記に進む（ワークフローは継続）
 
@@ -368,7 +368,7 @@ Phase 1 の全指摘を収集した後、以下の処理を実行する。
 
 8. **昇格処理を実行する**
    ```
-   node scripts/review-memory.mjs promote-all
+   node .claude/scripts/review-memory.mjs promote-all
    ```
    - 出力: 昇格された cluster_id の配列 `{"promoted": ["c-001", "c-002"]}`
    - CLI エラーが発生した場合: stderr に出力し、Phase 3 に進む

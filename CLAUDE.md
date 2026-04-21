@@ -39,13 +39,20 @@ runner/                 — 外部オーケストレーター群（Copier 配布
     reset.sh            — workspace をアーカイブして再初期化
     lib/                — state.sh / invoker.sh / archive.sh
     test/               — bats テスト（94 tests GREEN）
+  scripts/              — エンドユーザ向けユーティリティ（Copier で .claude/scripts/ に配布される）
+    collect-feedback.mjs  — session-feedback.jsonl の集計・分類
+    review-memory.mjs     — review-findings.jsonl の CRUD・クラスタ集計・conventions 整形
+    migrate-review-findings.mjs — 初回マイグレーション（既存9件に id/cluster_id 付与）
+    verify-hooks.mjs      — hooks 設定の自己検証（settings.json の hooks セクション + post-tool-log 発火確認）
+    verify-guard-consistency.mjs — スキル指示 vs WHITELIST の不整合検出
 workspace/              — dogfood 対象（.gitignore、Copier 配布対象外）
   ec-sample/            — EC サンプルプロジェクト（.claude/modules は symlink 経由でハーネス本体を参照）
-scripts/                — Node.js ユーティリティスクリプト
-  collect-feedback.mjs  — session-feedback.jsonl の集計・分類
-  review-memory.mjs     — review-findings.jsonl の CRUD・クラスタ集計・conventions 整形
-  migrate-review-findings.mjs — 初回マイグレーション（既存9件に id/cluster_id 付与）
-  verify-hooks.mjs      — hooks 設定の自己検証（settings.json の hooks セクション + post-tool-log 発火確認）
+scripts/                — ハーネス開発用ユーティリティ（Copier 配布対象外）
+  archive-observation-log.mjs — observation-log.jsonl のアーカイブ処理
+  verify-harness.mjs    — ハーネス自己検証
+  eval-harness.mjs      — ハーネス効果測定
+  compare-harnesses.mjs — ハーネス比較
+  setup.sh              — 開発環境セットアップ
 docs/                   — 設計書・調査資料・ガイド
 copier.yml              — Copier テンプレート設定
 .copier-answers.yml.jinja — Copier メタデータテンプレート
@@ -90,8 +97,8 @@ Claude Code の hooks は `.claude/settings.json` の `hooks` キーで定義す
 
 - **配置先**: `.claude/settings.json`（Project scope、チーム共有、Copier 配布対象）
 - **フック本体**: `.claude/hooks/scripts/*.mjs`
-- **自己検証**: `node scripts/verify-hooks.mjs`（hooks 定義と post-tool-log の発火を確認）
-- **スキル/ガード整合性検証**: `node scripts/verify-guard-consistency.mjs`（スキル指示 vs WHITELIST の不整合検出）
+- **自己検証**: `node .claude/scripts/verify-hooks.mjs`（hooks 定義と post-tool-log の発火を確認）
+- **スキル/ガード整合性検証**: `node .claude/scripts/verify-guard-consistency.mjs`（スキル指示 vs WHITELIST の不整合検出）
 
 hooks の動作確認は毎セッション開始時に `verify-hooks.mjs` で検証することを推奨。
 

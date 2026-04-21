@@ -26,7 +26,7 @@ import { spawn } from "node:child_process";
 
 // --- CLI ヘルパー（add-sign テスト用）---
 
-const CLI_PATH = resolve("scripts/review-memory.mjs");
+const CLI_PATH = resolve(".claude/scripts/review-memory.mjs");
 const CLI_CWD = resolve(".");
 
 function runCli(args, stdin = "") {
