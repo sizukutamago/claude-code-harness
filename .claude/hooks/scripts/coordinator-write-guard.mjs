@@ -56,8 +56,15 @@ try {
     }
   
     // coordinator がコードを書こうとしている → ブロック
+    const hints = [
+      "docs/plans/", "docs/design/", "docs/decisions/",
+      "requirements/", ".claude/harness/", ".ralph/config.json",
+    ].filter((p) => filePath.includes(p.replace(/\/$/, "")));
+    const hintMsg = hints.length > 0
+      ? `\nヒント: ${hints[0]} への書き込みはホワイトリスト済みです。パスを確認してください。`
+      : "\nヒント: docs/plans/, docs/design/, requirements/ 等はホワイトリスト済みです。";
     console.error(
-      `[harness] コーディネーターは直接コードを書けません。implementer エージェントにディスパッチしてください。\n対象ファイル: ${filePath}`,
+      `[harness] コーディネーターは直接コードを書けません。implementer エージェントにディスパッチしてください。\n対象ファイル: ${filePath}${hintMsg}`,
     );
     process.exit(2);
   } catch (err) {
