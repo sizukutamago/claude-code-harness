@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/harness-config.schema.json",
+  "_comment": "プロジェクトをコピーしたら .claude/harness-config.json にリネームし、ui_paths を環境に合わせて設定する。verification-gate hook が UI 変更時に executable evidence を必須化する判定に使う。",
+  "ui_paths": [
+    "packages/frontend/src/",
+    "src/components/",
+    "src/pages/",
+    "app/"
+  ]
+}

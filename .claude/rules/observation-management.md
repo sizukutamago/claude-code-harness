@@ -25,3 +25,26 @@ proposed → active → deprecated → (削除は手動)
 - **meta-observer は提案のみ。直接 yaml やエージェント定義を書き換えない**
 - **観点の追加・非推奨化は必ず人間承認を経る**
 - **1 セッションあたりの提案上限は 5 件**
+
+## Resolution の記録
+
+observation-log.jsonl の finding を解決済みとマークする際は、`.claude/scripts/resolve-observation.mjs` 経由でのみ記録する。**meta-observer や L2 エージェントが手動で resolved を書き込むことを禁止**。
+
+### 使い方
+
+```bash
+node .claude/scripts/resolve-observation.mjs \
+  --finding-id <id> \
+  --commit <sha> \
+  --evidence test_run \
+  --target-files "src/foo.ts,src/bar.ts" \
+  --note "Phase X で fix"
+```
+
+### 鉄則
+
+- **`--target-files` は推奨**: commit の `git show --name-only` で対象ファイルが実際に変更されているか機械検証する。未変更なら resolution が拒否される（meta-observer self-pollution 防止）
+- **`--skip-verify` は緊急時のみ**: 監査ログに記録される
+- **`--cluster` で同一テーマを束ねる**: 同じ根本原因の重複 finding を 1 つの cluster_id で集計可能にする
+- **追記行で履歴保持**: 既存 entry は変更せず、resolution を新しい行として追記する（schema 移行不要）
+

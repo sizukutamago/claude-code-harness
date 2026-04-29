@@ -39,6 +39,11 @@
             "type": "command",
             "command": "node .claude/hooks/scripts/feedback-staleness-check.mjs",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/scripts/artifact-guard.mjs",
+            "timeout": 5
           }
         ]
       }
@@ -87,6 +92,22 @@
           {
             "type": "command",
             "command": "node .claude/hooks/scripts/session-end-retrospective.mjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/scripts/artifact-guard.mjs warn",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/scripts/observation-injection.mjs",
             "timeout": 5
           }
         ]
