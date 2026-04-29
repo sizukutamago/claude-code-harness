@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://harness.local/last-verification.schema.json",
+  "title": "last-verification.json",
+  "description": "verification スキルが書き出す検証証拠スナップショット。verification-gate hook が読み取り、git commit を許可するかを決定する。",
+  "type": "object",
+  "required": ["status", "timestamp", "req_path", "evidence", "commit_sha", "reason"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "INCONCLUSIVE"],
+      "description": "検証結果。PASS のみ commit 許可"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "検証実施時刻 (ISO8601)"
+    },
+    "req_path": {
+      "type": "string",
+      "description": "検証対象の要件パス"
+    },
+    "commit_sha": {
+      "type": "string",
+      "description": "検証時の HEAD commit SHA。verification-gate が現在の HEAD と比較し、stale ならブロック",
+      "pattern": "^[a-f0-9]{7,40}$|^pending$"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "description": "検証証拠のリスト。1 件以上必須",
+      "items": {
+        "type": "object",
+        "required": ["type", "summary"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["test_run", "e2e_run", "visual_snapshot", "llm_e2e", "report", "manual_check"]
+          },
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "artifact_path": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "scope": { "type": "string" },
+    "reason": { "type": "string" },
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "evidence_type": {
+      "type": "string",
+      "deprecated": true,
+      "description": "DEPRECATED. evidence[] の type を使うこと"
+    },
+    "evidence_paths": {
+      "type": "array",
+      "deprecated": true,
+      "description": "DEPRECATED. evidence[].artifact_path を使うこと"
+    }
+  },
+  "additionalProperties": true
+}
